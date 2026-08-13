@@ -36,7 +36,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
     const fetchedRef = useRef(false)
 
     const { register, handleSubmit, watch, formState: { errors }, reset } = useForm({
-        defaultValues: { currency: 'INR', category: 'Other', date: new Date().toISOString().split('T')[0] },
+        defaultValues: { currency: 'INR', category: 'Other', date: new Date().toISOString().split('T')[0], paidBy: user._id },
     })
     const amount = watch('amount')
 
@@ -253,8 +253,8 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                                     type="button"
                                     onClick={() => toggleParticipant(p._id)}
                                     className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all text-left ${selected
-                                            ? 'border-primary-400 bg-primary-50'
-                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                        ? 'border-primary-400 bg-primary-50'
+                                        : 'border-gray-200 bg-white hover:border-gray-300'
                                         }`}
                                 >
                                     <div className="relative flex-shrink-0">
@@ -352,7 +352,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                         {/* Validation indicator */}
                         {splitType === 'exact' && amount && (
                             <div className={`text-xs pt-1 border-t border-gray-200 flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0) - parseFloat(amount)) < 0.01
-                                    ? 'text-green-600' : 'text-red-500'
+                                ? 'text-green-600' : 'text-red-500'
                                 }`}>
                                 <span>Total entered</span>
                                 <span>{formatCurrency(splitData.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0))}</span>
@@ -360,7 +360,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                         )}
                         {splitType === 'percentage' && (
                             <div className={`text-xs pt-1 border-t border-gray-200 flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.percentage) || 0), 0) - 100) < 0.01
-                                    ? 'text-green-600' : 'text-red-500'
+                                ? 'text-green-600' : 'text-red-500'
                                 }`}>
                                 <span>Total %</span>
                                 <span>{splitData.reduce((s, x) => s + (parseFloat(x.percentage) || 0), 0).toFixed(1)}%</span>

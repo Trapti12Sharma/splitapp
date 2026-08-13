@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import Avatar from '../components/common/Avatar'
 import Button from '../components/common/Button'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EditExpenseModal from '../components/expenses/EditExpenseModal'
 
 const ExpenseDetailPage = () => {
     const { id } = useParams()
@@ -17,6 +18,7 @@ const ExpenseDetailPage = () => {
     const [expense, setExpense] = useState(null)
     const [loading, setLoading] = useState(true)
     const [deleteOpen, setDeleteOpen] = useState(false)
+    const [editOpen, setEditOpen] = useState(false)
     const [deleting, setDeleting] = useState(false)
 
     useEffect(() => {
@@ -49,7 +51,7 @@ const ExpenseDetailPage = () => {
                 </Link>
                 {isCreator && (
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => toast('Edit coming soon')}>
+                        <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
                             <Edit2 className="w-4 h-4" /> Edit
                         </Button>
                         <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
@@ -138,6 +140,16 @@ const ExpenseDetailPage = () => {
             <ConfirmDialog isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} onConfirm={handleDelete}
                 title="Delete Expense" message={`Delete "${expense.description}"? This action cannot be undone.`}
                 confirmLabel="Delete" loading={deleting} />
+
+            <EditExpenseModal
+                isOpen={editOpen}
+                onClose={() => setEditOpen(false)}
+                expense={expense}
+                onSuccess={() => {
+                    setEditOpen(false)
+                    expenseService.getExpense(id).then((res) => setExpense(res.data.data.expense)).catch(() => { })
+                }}
+            />
         </div>
     )
 }
