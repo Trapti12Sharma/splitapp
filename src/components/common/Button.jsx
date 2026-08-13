@@ -1,17 +1,17 @@
 import { Loader2 } from 'lucide-react'
 
 const variants = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white border-transparent',
-    secondary: 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300',
-    danger: 'bg-red-600 hover:bg-red-700 text-white border-transparent',
-    ghost: 'bg-transparent hover:bg-gray-100 text-gray-600 border-transparent',
-    success: 'bg-green-600 hover:bg-green-700 text-white border-transparent',
+    primary: 'bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 text-white border-transparent shadow-sm shadow-primary-500/25',
+    secondary: 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700',
+    danger: 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white border-transparent shadow-sm shadow-red-500/25',
+    ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border-transparent',
+    success: 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white border-transparent shadow-sm shadow-emerald-500/25',
 }
 
 const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
+    sm: 'px-3 py-1.5 text-xs',
     md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    lg: 'px-6 py-2.5 text-base',
 }
 
 const Button = ({
@@ -31,9 +31,9 @@ const Button = ({
             onClick={onClick}
             disabled={disabled || loading}
             className={`
-        inline-flex items-center justify-center gap-2 font-medium rounded-lg border
-        transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
-        disabled:opacity-50 disabled:cursor-not-allowed
+        inline-flex items-center justify-center gap-2 font-semibold rounded-xl border
+        transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:ring-offset-2 dark:focus:ring-offset-gray-900
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
         ${variants[variant]}
         ${sizes[size]}
         ${className}
