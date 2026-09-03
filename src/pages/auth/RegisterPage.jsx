@@ -37,7 +37,9 @@ const RegisterPage = () => {
             navigate('/dashboard', { replace: true })
             toast.success('Account created! Welcome to SplitApp.')
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Registration failed')
+            const msg = err.response?.data?.message || err.response?.data?.errors?.[0] || 'Registration failed'
+            toast.error(msg)
+            console.error('Register error:', err.response?.data)
         } finally {
             setLoading(false)
         }
