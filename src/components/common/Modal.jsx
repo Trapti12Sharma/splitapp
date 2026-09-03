@@ -3,43 +3,38 @@ import { X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md', hideClose = false }) => {
-    const sizes = {
-        sm: 'max-w-md',
-        md: 'max-w-lg',
-        lg: 'max-w-2xl',
-        xl: 'max-w-4xl',
-        full: 'max-w-full mx-4',
-    }
+    const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl', full: 'max-w-full mx-4' }
 
     useEffect(() => {
-        if (isOpen) document.body.style.overflow = 'hidden'
-        else document.body.style.overflow = 'unset'
+        document.body.style.overflow = isOpen ? 'hidden' : 'unset'
         return () => { document.body.style.overflow = 'unset' }
     }, [isOpen])
 
     useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') onClose() }
-        document.addEventListener('keydown', handler)
-        return () => document.removeEventListener('keydown', handler)
+        const h = (e) => { if (e.key === 'Escape') onClose() }
+        document.addEventListener('keydown', h)
+        return () => document.removeEventListener('keydown', h)
     }, [onClose])
 
     if (!isOpen) return null
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className={`relative w-full ${sizes[size]} glass-card rounded-3xl flex flex-col max-h-[90vh] shadow-xl`}>
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+            <div className={`relative w-full ${sizes[size]} flex flex-col max-h-[90vh] rounded-3xl border border-white/10 shadow-2xl animate-slide-up`}
+                style={{ background: '#16162a' }}>
                 {(title || !hideClose) && (
-                    <div className="flex items-center justify-between p-5 border-b border-gray-200/60 dark:border-gray-800/60 flex-shrink-0">
-                        {title && <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>}
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 flex-shrink-0">
+                        {title && <h2 className="text-base font-bold text-white">{title}</h2>}
                         {!hideClose && (
-                            <button onClick={onClose} className="ml-auto p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <button onClick={onClose}
+                                className="ml-auto p-1.5 rounded-xl hover:bg-white/8 text-gray-400 hover:text-gray-200 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         )}
                     </div>
                 )}
-                <div className="overflow-y-auto flex-1 p-5">
+                <div className="overflow-y-auto flex-1 p-6">
                     {children}
                 </div>
             </div>

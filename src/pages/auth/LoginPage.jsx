@@ -13,7 +13,6 @@ const LoginPage = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const [loading, setLoading] = useState(false)
-
     const { register, handleSubmit, formState: { errors } } = useForm()
 
     const onSubmit = async (data) => {
@@ -25,55 +24,44 @@ const LoginPage = () => {
             toast.success('Welcome back!')
         } catch (err) {
             toast.error(err.response?.data?.message || 'Login failed')
-        } finally {
-            setLoading(false)
-        }
+        } finally { setLoading(false) }
     }
 
     return (
         <AuthLayout>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
-            <p className="text-sm text-gray-500 mb-6">Sign in to your account</p>
+            <div className="mb-7">
+                <h1 className="text-2xl font-extrabold text-white mb-1">Welcome back</h1>
+                <p className="text-sm text-gray-400">Sign in to continue</p>
+            </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input
-                    label="Email"
-                    type="email"
-                    icon={Mail}
-                    placeholder="you@example.com"
+                <Input label="Email" type="email" icon={Mail} placeholder="you@example.com"
                     error={errors.email?.message}
-                    {...register('email', {
-                        required: 'Email is required',
-                        pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' },
-                    })}
-                />
-                <Input
-                    label="Password"
-                    type="password"
-                    icon={Lock}
-                    placeholder="••••••••"
-                    error={errors.password?.message}
-                    {...register('password', { required: 'Password is required' })}
-                />
+                    {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' } })} />
 
-                <div className="flex items-center justify-between">
-                    <span />
-                    <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
+                <Input label="Password" type="password" icon={Lock} placeholder="••••••••"
+                    error={errors.password?.message}
+                    {...register('password', { required: 'Password is required' })} />
+
+                <div className="flex justify-end">
+                    <Link to="/forgot-password" className="text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors">
                         Forgot password?
                     </Link>
                 </div>
 
-                <Button type="submit" className="w-full" loading={loading}>
-                    Sign in
+                <Button type="submit" className="w-full" loading={loading} size="lg">
+                    Sign In
                 </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-500">
-                Don&apos;t have an account?{' '}
-                <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-                    Create one
-                </Link>
-            </p>
+            <div className="mt-6 pt-6 border-t border-white/8 text-center">
+                <p className="text-sm text-gray-400">
+                    Don't have an account?{' '}
+                    <Link to="/register" className="text-primary-400 hover:text-primary-300 font-semibold transition-colors">
+                        Create one
+                    </Link>
+                </p>
+            </div>
         </AuthLayout>
     )
 }

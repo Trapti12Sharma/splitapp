@@ -1,50 +1,151 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, UsersRound } from 'lucide-react'
+import { Plus, Users, ChevronRight, Sparkles } from 'lucide-react'
 import { groupService } from '../services/groupService'
+import { formatCurrency } from '../utils/formatCurrency'
 import Button from '../components/common/Button'
-import EmptyState from '../components/common/EmptyState'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
+
+const GROUP_GRADIENTS = [
+    'from-violet-500 to-purple-600',
+    'from-blue-500 to-cyan-500',
+    'from-emerald-500 to-teal-500',
+    'from-orange-500 to-amber-500',
+    'from-pink-500 to-rose-500',
+    'from-indigo-500 to-blue-600',
+]
 
 const GroupsPage = () => {
     const [groups, setGroups] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        groupService.getGroups().then((res) => setGroups(res.data.data.groups)).catch(() => { }).finally(() => setLoading(false))
+        groupService.getGroups()
+            .then(res => setGroups(res.data.data.groups))
+            .catch(() => { })
+            .finally(() => setLoading(false))
     }, [])
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6 animate-fade-in">
+            {/* Header */}
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-                <Link to="/groups/create"><Button><Plus className="w-4 h-4" /> New Group</Button></Link>
+                <div>
+                    <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Groups</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {groups.length > 0 ? `${groups.length} active group${groups.length > 1 ? 's' : ''}` : 'Split with teams'}
+                    </p>
+                </div>
+                <Link to="/groups/create">
+                    <Button className="gap-1.5">
+                        <Plus className="w-4 h-4" />
+                        New Group
+                    </Button>
+                </Link>
             </div>
 
-            {loading ? <LoadingSkeleton count={4} /> :
-                groups.length === 0 ? (
-                    <EmptyState icon={UsersRound} title="No groups yet" description="Create a group to split expenses with multiple people." />
-                ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {groups.map((g) => (
+            {loading ? (
+                <LoadingSkeleton count={4} />
+            ) : groups.length === 0 ? (
+                /* Empty state */
+                <div className="glass-card rounded-3xl p-12 text-center">
+                    <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-glow">
+                        <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No groups yet</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
+                        Create a group to split expenses with roommates, friends, or for trips
+                    </p>
+                    <Link to="/groups/create">
+                        <Button>
+                            <Sparkles className="w-4 h-4" />
+                            Create your first group
+                        </Button>
+                    </Link>
+                </div>
+            ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groups.map((g, index) => {
+                        const gradient = GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]
+                        return (
                             <Link key={g._id} to={`/groups/${g._id}`}
-                                className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-primary-200 transition-colors">
-                                <div className="flex items-center gap-3 mb-3">
-                                    {g.groupImage
-                                        ? <img src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${g.groupImage}`} alt={g.name} className="w-12 h-12 rounded-xl object-cover" />
-                                        : <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-xl font-bold text-primary-600">{g.name[0]}</div>
-                                    }
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-gray-900 truncate">{g.name}</p>
-                                        <p className="text-xs text-gray-500">{g.members?.length} members</p>
+                                className="glass-card card-hover rounded-2xl overflow-hidden group cursor-pointer">
+                                {/* Color band top */}
+                                <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
+
+                                <div className="p-5">
+                                    {/* Group identity */}
+                                    <div className="flex items-start gap-3 mb-4">
+                                        {g.groupImage ? (
+                                            <img src={g.groupImage} alt={g.name}
+                                                className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow-sm" />
+                                        ) : (
+                                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                                                <span className="text-xl font-extrabold text-white">{g.name[0]}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-base leading-tight">
+                                                {g.name}
+                                            </h3>
+                                            {g.description && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                                                    {g.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
+                                    </div>
+
+                                    {/* Members avatars */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <div className="flex -space-x-2">
+                                                {g.members?.slice(0, 4).map((m, i) => {
+                                                    const initials = m.user?.name?.charAt(0)?.toUpperCase() || '?'
+                                                    const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500']
+                                                    return (
+                                                        <div key={i}
+                                                            className={`w-7 h-7 rounded-full ${colors[i % colors.length]} border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden`}>
+                                                            {m.user?.profileImage
+                                                                ? <img src={m.user.profileImage} alt="" className="w-full h-full object-cover" />
+                                                                : initials
+                                                            }
+                                                        </div>
+                                                    )
+                                                })}
+                                                {g.members?.length > 4 && (
+                                                    <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-300 text-[10px] font-bold">
+                                                        +{g.members.length - 4}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+                                                {g.members?.length} member{g.members?.length !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        {/* Badge */}
+                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r ${gradient} text-white`}>
+                                            Active
+                                        </span>
                                     </div>
                                 </div>
-                                {g.description && <p className="text-xs text-gray-500 line-clamp-2">{g.description}</p>}
                             </Link>
-                        ))}
-                    </div>
-                )
-            }
+                        )
+                    })}
+
+                    {/* Add group card */}
+                    <Link to="/groups/create"
+                        className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-600 flex flex-col items-center justify-center p-8 gap-3 transition-all duration-200 group min-h-[160px]">
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 group-hover:gradient-primary flex items-center justify-center transition-all">
+                            <Plus className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-primary-600" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 group-hover:text-primary-600 transition-colors">
+                            New Group
+                        </p>
+                    </Link>
+                </div>
+            )}
         </div>
     )
 }

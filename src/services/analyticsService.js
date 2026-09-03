@@ -5,4 +5,5 @@ export const analyticsService = {
   getMonthlyExpenses: () => api.get('/analytics/monthly'),
   getCategoryBreakdown: () => api.get('/analytics/categories'),
   getGroupSpending: () => api.get('/analytics/groups'),
+  getGroupStats: (groupId) => api.get(`/analytics/groups/${groupId}`),
 }

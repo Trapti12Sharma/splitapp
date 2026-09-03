@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, Users, Clock, Check, X } from 'lucide-react'
+import { Search, UserPlus, Users, Clock, Check, X, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { friendService } from '../services/friendService'
 import { useDebounce } from '../hooks/useDebounce'
@@ -28,52 +28,46 @@ const FriendsPage = () => {
             setFriends(fRes.data.data.friends)
             setRequests(rRes.data.data.requests)
         } catch { } finally { setLoading(false) }
-    }, []) // stable — no external deps needed
+    }, [])
 
-    useEffect(() => { fetchData() }, [])
+    useEffect(() => { fetchData() }, [fetchData])
 
     useEffect(() => {
         if (debouncedSearch.length < 2) { setSearchResults([]); return }
         setSearchLoading(true)
         friendService.searchUsers(debouncedSearch)
-            .then((res) => setSearchResults(res.data.data.users))
+            .then(res => setSearchResults(res.data.data.users))
             .catch(() => { })
             .finally(() => setSearchLoading(false))
     }, [debouncedSearch])
 
     const handleSendRequest = async (userId) => {
-        setActionLoading((p) => ({ ...p, [userId]: true }))
+        setActionLoading(p => ({ ...p, [userId]: true }))
         try {
             await friendService.sendRequest(userId)
             toast.success('Friend request sent!')
-            setSearchResults((prev) => prev.filter((u) => u._id !== userId))
+            setSearchResults(prev => prev.filter(u => u._id !== userId))
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to send request')
-        } finally {
-            setActionLoading((p) => ({ ...p, [userId]: false }))
-        }
+            toast.error(err.response?.data?.message || 'Failed')
+        } finally { setActionLoading(p => ({ ...p, [userId]: false })) }
     }
 
     const handleAccept = async (id) => {
-        setActionLoading((p) => ({ ...p, [id]: 'accept' }))
+        setActionLoading(p => ({ ...p, [id]: 'accept' }))
         try {
             await friendService.acceptRequest(id)
             toast.success('Friend request accepted!')
             fetchData()
-        } catch { toast.error('Failed to accept') } finally {
-            setActionLoading((p) => ({ ...p, [id]: false }))
-        }
+        } catch { toast.error('Failed') } finally { setActionLoading(p => ({ ...p, [id]: false })) }
     }
 
     const handleReject = async (id) => {
-        setActionLoading((p) => ({ ...p, [id]: 'reject' }))
+        setActionLoading(p => ({ ...p, [id]: 'reject' }))
         try {
             await friendService.rejectRequest(id)
-            toast.success('Request rejected')
-            setRequests((prev) => prev.filter((r) => r._id !== id))
-        } catch { toast.error('Failed to reject') } finally {
-            setActionLoading((p) => ({ ...p, [id]: false }))
-        }
+            toast.success('Rejected')
+            setRequests(prev => prev.filter(r => r._id !== id))
+        } catch { toast.error('Failed') } finally { setActionLoading(p => ({ ...p, [id]: false })) }
     }
 
     const tabs = [
@@ -83,33 +77,36 @@ const FriendsPage = () => {
     ]
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900">Friends</h1>
+        <div className="space-y-5 animate-fade-in">
+            <div>
+                <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Friends</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your connections</p>
+            </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(99,102,241,0.08)' }}>
                 {tabs.map(({ id, label, count }) => (
                     <button key={id} onClick={() => setTab(id)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors relative ${tab === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                        {label}
-                        {count > 0 && <span className="ml-1.5 bg-primary-100 text-primary-700 text-xs rounded-full px-1.5">{count}</span>}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === id ? 'gradient-primary text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}>
+                        {label}{count > 0 && <span className={`ml-1.5 text-xs rounded-full px-1.5 ${tab === id ? 'bg-white/25' : 'bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400'}`}>{count}</span>}
                     </button>
                 ))}
             </div>
 
-            {/* Friends List */}
+            {/* Friends list */}
             {tab === 'friends' && (
                 loading ? <LoadingSkeleton count={4} /> :
                     friends.length === 0
-                        ? <EmptyState icon={Users} title="No friends yet" description="Search for people and send friend requests to get started." action={() => setTab('find')} actionLabel="Find Friends" />
+                        ? <EmptyState icon={Users} title="No friends yet" description="Find people and send friend requests" action={() => setTab('find')} actionLabel="Find Friends" />
                         : <div className="grid sm:grid-cols-2 gap-3">
                             {friends.map(({ friendshipId, friend, balance }) => (
                                 <Link key={friendshipId} to={`/friends/${friend._id}`}
-                                    className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:border-primary-200 transition-colors">
+                                    className="glass-card card-hover rounded-2xl p-4 flex items-center gap-3">
                                     <Avatar user={friend} size="md" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-gray-900 truncate">{friend.name}</p>
-                                        <p className="text-xs text-gray-500">@{friend.username}</p>
+                                        <p className="font-bold text-gray-900 dark:text-white truncate">{friend.name}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500">@{friend.username}</p>
                                     </div>
                                     <CurrencyDisplay amount={balance} size="sm" showLabel />
                                 </Link>
@@ -117,50 +114,53 @@ const FriendsPage = () => {
                         </div>
             )}
 
-            {/* Friend Requests */}
+            {/* Requests */}
             {tab === 'requests' && (
                 requests.length === 0
-                    ? <EmptyState icon={Clock} title="No pending requests" description="You're all caught up." />
+                    ? <EmptyState icon={Clock} title="No pending requests" description="You're all caught up!" />
                     : <div className="space-y-3">
-                        {requests.map((req) => (
-                            <div key={req._id} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                        {requests.map(req => (
+                            <div key={req._id} className="glass-card rounded-2xl p-4 flex items-center gap-3">
                                 <Avatar user={req.requester} size="md" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900">{req.requester?.name}</p>
-                                    <p className="text-xs text-gray-500">@{req.requester?.username}</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{req.requester?.name}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">@{req.requester?.username}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="success" size="sm" loading={actionLoading[req._id] === 'accept'} onClick={() => handleAccept(req._id)}>
-                                        <Check className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="danger" size="sm" loading={actionLoading[req._id] === 'reject'} onClick={() => handleReject(req._id)}>
-                                        <X className="w-4 h-4" />
-                                    </Button>
+                                    <button onClick={() => handleAccept(req._id)} disabled={actionLoading[req._id]}
+                                        className="w-9 h-9 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 flex items-center justify-center transition-colors">
+                                        <Check className="w-4 h-4 text-emerald-500" />
+                                    </button>
+                                    <button onClick={() => handleReject(req._id)} disabled={actionLoading[req._id]}
+                                        className="w-9 h-9 rounded-xl bg-red-500/15 hover:bg-red-500/25 flex items-center justify-center transition-colors">
+                                        <X className="w-4 h-4 text-red-400" />
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
             )}
 
-            {/* Find People */}
+            {/* Find people */}
             {tab === 'find' && (
                 <div className="space-y-4">
-                    <Input icon={Search} placeholder="Search by name, username, or email..."
-                        value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                    {searchLoading && <p className="text-sm text-gray-500">Searching...</p>}
+                    <Input icon={Search} placeholder="Search by name, username, or email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    {searchLoading && <p className="text-sm text-gray-400">Searching...</p>}
                     {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No users found</p>
+                        <div className="glass-card rounded-2xl p-8 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No users found for "{searchQuery}"</p>
+                        </div>
                     )}
                     <div className="space-y-3">
-                        {searchResults.map((u) => (
-                            <div key={u._id} className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                        {searchResults.map(u => (
+                            <div key={u._id} className="glass-card rounded-2xl p-4 flex items-center gap-3">
                                 <Avatar user={u} size="md" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900">{u.name}</p>
-                                    <p className="text-xs text-gray-500">@{u.username}</p>
+                                    <p className="font-bold text-gray-900 dark:text-white">{u.name}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">@{u.username}</p>
                                 </div>
                                 <Button size="sm" variant="secondary" loading={actionLoading[u._id]} onClick={() => handleSendRequest(u._id)}>
-                                    <UserPlus className="w-4 h-4" /> Add
+                                    <UserPlus className="w-3.5 h-3.5" /> Add
                                 </Button>
                             </div>
                         ))}
