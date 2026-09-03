@@ -38,7 +38,13 @@ const RegisterPage = () => {
             toast.success('Account created! Welcome to SplitApp.')
         } catch (err) {
             const msg = err.response?.data?.message || err.response?.data?.errors?.[0] || 'Registration failed'
-            toast.error(msg)
+            // If already registered, offer to login instead
+            if (msg.toLowerCase().includes('email already') || msg.toLowerCase().includes('already registered')) {
+                toast.error('This email is already registered. Try logging in.')
+                setTimeout(() => navigate('/login'), 2000)
+            } else {
+                toast.error(msg)
+            }
             console.error('Register error:', err.response?.data)
         } finally {
             setLoading(false)
