@@ -6,14 +6,15 @@ import Modal from '../common/Modal'
 import Input from '../common/Input'
 import Button from '../common/Button'
 import Avatar from '../common/Avatar'
+import ImagePicker from '../common/ImagePicker'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import { friendService } from '../../services/friendService'
 import { useAuth } from '../../context/AuthContext'
 import { calculateSplits, validateSplits } from '../../utils/calculateSplits'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { CATEGORIES, getCategoryStyle } from '../../utils/categoryStyle'
 
-const CATEGORIES = ['Food', 'Travel', 'Shopping', 'Entertainment', 'Bills', 'Rent', 'Utilities', 'Health', 'Groceries', 'Transport', 'Other']
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP']
 const SPLIT_TYPES = [
     { value: 'equal', label: 'Equal' },
@@ -25,6 +26,7 @@ const SPLIT_TYPES = [
 const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
     const { user } = useAuth()
     const [loading, setLoading] = useState(false)
+    const [receiptFile, setReceiptFile] = useState(null)
     const [groups, setGroups] = useState([])
     const [friends, setFriends] = useState([])
     const [selectedGroup, setSelectedGroup] = useState(defaultGroupId || '')
@@ -117,6 +119,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
     const handleClose = () => {
         reset()
+        setReceiptFile(null)
         setSplitType('equal')
         setSelectedGroup(defaultGroupId || '')
         setPreviewSplits([])
@@ -148,7 +151,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
             formData.append('splitType', splitType)
             formData.append('date', data.date)
             if (data.notes) formData.append('notes', data.notes)
-            if (data.receipt?.[0]) formData.append('receipt', data.receipt[0])
+            if (receiptFile) formData.append('receipt', receiptFile)
 
             formData.append('splits', JSON.stringify(splitData.map((s) => ({
                 userId: s.userId,
@@ -189,8 +192,8 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                             {...register('amount', { required: 'Amount is required', min: { value: 0.01, message: 'Must be > 0' } })} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                        <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 h-[38px]" {...register('currency')}>
+                        <label className="block text-sm font-medium text-muted mb-1">Currency</label>
+                        <select className="field" {...register('currency')}>
                             {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
                         </select>
                     </div>
@@ -199,16 +202,16 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                 {/* Group + Paid by */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Group (optional)</label>
-                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        <label className="block text-sm font-medium text-muted mb-1">Group (optional)</label>
+                        <select className="field"
                             value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
                             <option value="">No group (personal)</option>
                             {groups.map((g) => <option key={g._id} value={g._id}>{g.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Paid by</label>
-                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" {...register('paidBy')}>
+                        <label className="block text-sm font-medium text-muted mb-1">Paid by</label>
+                        <select className="field" {...register('paidBy')}>
                             {allPeople.map((p) => (
                                 <option key={p._id} value={p._id}>{p._id === user._id ? `You (${p.name})` : p.name}</option>
                             ))}
@@ -219,9 +222,9 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                 {/* Category + Date */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" {...register('category')}>
-                            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                        <label className="block text-sm font-medium text-muted mb-1">Category</label>
+                        <select className="field" {...register('category')}>
+                            {CATEGORIES.map((c) => <option key={c} value={c}>{getCategoryStyle(c).emoji} {c}</option>)}
                         </select>
                     </div>
                     <Input label="Date" type="date" {...register('date')} />
@@ -230,17 +233,17 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                 {/* ─── Participant Selector ─── */}
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <label className="text-sm font-medium text-muted flex items-center gap-1.5">
                             <UserCheck className="w-4 h-4 text-primary-600" />
                             Split between
-                            <span className="text-xs font-normal text-gray-500">({selectedParticipants.length}/{allPeople.length} selected)</span>
+                            <span className="text-xs font-normal text-muted">({selectedParticipants.length}/{allPeople.length} selected)</span>
                         </label>
                         <div className="flex gap-2">
                             <button type="button" onClick={selectAll}
                                 className="text-xs text-primary-600 hover:text-primary-700 font-medium">All</button>
-                            <span className="text-gray-300">·</span>
+                            <span className="text-subtle">·</span>
                             <button type="button" onClick={selectOnlyMe}
-                                className="text-xs text-gray-500 hover:text-gray-700">Only me</button>
+                                className="text-xs text-muted hover:text-muted">Only me</button>
                         </div>
                     </div>
 
@@ -254,7 +257,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                                     onClick={() => toggleParticipant(p._id)}
                                     className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all text-left ${selected
                                         ? 'border-primary-400 bg-primary-50'
-                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                        : 'border-token bg-surface hover:border-token'
                                         }`}
                                 >
                                     <div className="relative flex-shrink-0">
@@ -266,10 +269,10 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className={`text-xs font-medium truncate ${selected ? 'text-primary-800' : 'text-gray-700'}`}>
+                                        <p className={`text-xs font-semibold truncate ${selected ? 'text-primary-700 dark:text-primary-200' : 'text-muted'}`}>
                                             {p._id === user._id ? 'You' : p.name.split(' ')[0]}
                                         </p>
-                                        <p className="text-xs text-gray-400 truncate">@{p.username}</p>
+                                        <p className="text-xs text-subtle truncate">@{p.username}</p>
                                     </div>
                                 </button>
                             )
@@ -279,11 +282,11 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
                 {/* Split type */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Split type</label>
-                    <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                    <label className="block text-sm font-medium text-muted mb-2">Split type</label>
+                    <div className="flex gap-1 bg-surface-2 rounded-lg p-1">
                         {SPLIT_TYPES.map(({ value, label }) => (
                             <button key={value} type="button" onClick={() => setSplitType(value)}
-                                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${splitType === value ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${splitType === value ? 'bg-surface shadow-sm text-default' : 'text-muted hover:text-muted'
                                     }`}>
                                 {label}
                             </button>
@@ -293,11 +296,11 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
                 {/* Split preview & inputs */}
                 {selectedParticipants.length > 0 && (
-                    <div className="bg-gray-50 rounded-xl p-3 space-y-2.5">
+                    <div className="rounded-xl p-3 space-y-2.5 border border-token" style={{ background: 'var(--surface-2)' }}>
                         <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Split Breakdown</p>
+                            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Split Breakdown</p>
                             {amount && parseFloat(amount) > 0 && (
-                                <p className="text-xs text-gray-500">Total: {formatCurrency(parseFloat(amount))}</p>
+                                <p className="text-xs text-muted">Total: {formatCurrency(parseFloat(amount))}</p>
                             )}
                         </div>
                         {selectedParticipants.map((uid, idx) => {
@@ -307,7 +310,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                             return (
                                 <div key={uid} className="flex items-center gap-2.5">
                                     <Avatar user={person} size="xs" className="flex-shrink-0" />
-                                    <span className="text-xs text-gray-700 w-16 truncate font-medium">
+                                    <span className="text-xs text-muted w-16 truncate font-medium">
                                         {uid === user._id ? 'You' : person?.name?.split(' ')[0]}
                                     </span>
 
@@ -315,7 +318,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                                     {splitType === 'exact' && (
                                         <div className="flex-1 relative">
                                             <input type="number" step="0.01" min="0" placeholder="0.00"
-                                                className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                className="field text-xs py-1.5 px-2"
                                                 value={sd?.amount || ''}
                                                 onChange={(e) => updateSplitData(uid, 'amount', e.target.value)} />
                                         </div>
@@ -323,16 +326,16 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                                     {splitType === 'percentage' && (
                                         <div className="flex-1 relative">
                                             <input type="number" step="0.1" min="0" max="100" placeholder="0"
-                                                className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 pr-5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                className="field text-xs py-1.5 px-2 pr-5"
                                                 value={sd?.percentage || ''}
                                                 onChange={(e) => updateSplitData(uid, 'percentage', e.target.value)} />
-                                            <span className="absolute right-2 top-1.5 text-xs text-gray-400">%</span>
+                                            <span className="absolute right-2 top-1.5 text-xs text-subtle">%</span>
                                         </div>
                                     )}
                                     {splitType === 'shares' && (
                                         <div className="flex-1">
                                             <input type="number" step="1" min="1" placeholder="1"
-                                                className="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                className="field text-xs py-1.5 px-2"
                                                 value={sd?.shares || '1'}
                                                 onChange={(e) => updateSplitData(uid, 'shares', e.target.value)} />
                                         </div>
@@ -341,7 +344,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
                                     {/* Calculated amount */}
                                     <div className="text-right flex-shrink-0 w-20">
-                                        <span className={`text-sm font-bold ${preview ? 'text-gray-900' : 'text-gray-300'}`}>
+                                        <span className={`text-sm font-bold ${preview ? 'text-default' : 'text-subtle'}`}>
                                             {preview ? formatCurrency(preview.amount) : '—'}
                                         </span>
                                     </div>
@@ -351,7 +354,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
                         {/* Validation indicator */}
                         {splitType === 'exact' && amount && (
-                            <div className={`text-xs pt-1 border-t border-gray-200 flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0) - parseFloat(amount)) < 0.01
+                            <div className={`text-xs pt-1 border-t border-token flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0) - parseFloat(amount)) < 0.01
                                 ? 'text-green-600' : 'text-red-500'
                                 }`}>
                                 <span>Total entered</span>
@@ -359,7 +362,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                             </div>
                         )}
                         {splitType === 'percentage' && (
-                            <div className={`text-xs pt-1 border-t border-gray-200 flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.percentage) || 0), 0) - 100) < 0.01
+                            <div className={`text-xs pt-1 border-t border-token flex justify-between ${Math.abs(splitData.reduce((s, x) => s + (parseFloat(x.percentage) || 0), 0) - 100) < 0.01
                                 ? 'text-green-600' : 'text-red-500'
                                 }`}>
                                 <span>Total %</span>
@@ -374,10 +377,14 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
 
                 {/* Receipt */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt (optional)</label>
-                    <input type="file" accept="image/*"
-                        className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                        {...register('receipt')} />
+                    <label className="block text-sm font-medium text-muted mb-1">Receipt (optional)</label>
+                    <ImagePicker
+                        value={receiptFile}
+                        onChange={setReceiptFile}
+                        shape="rounded"
+                        size="w-full h-28"
+                        label="Attach receipt"
+                    />
                 </div>
 
                 <div className="flex gap-3 pt-2">

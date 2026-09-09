@@ -1,11 +1,11 @@
 export const SkeletonLine = ({ className = '' }) => (
-    <div className={`h-4 bg-gray-200 dark:bg-white/8 rounded-lg animate-pulse ${className}`} />
+    <div className={`h-4 skeleton rounded-lg ${className}`} />
 )
 
 export const SkeletonCard = () => (
     <div className="glass-card rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-white/8 animate-pulse flex-shrink-0" />
+            <div className="w-10 h-10 rounded-xl skeleton flex-shrink-0" />
             <div className="flex-1 space-y-2">
                 <SkeletonLine className="w-3/4" />
                 <SkeletonLine className="w-1/2 h-3" />

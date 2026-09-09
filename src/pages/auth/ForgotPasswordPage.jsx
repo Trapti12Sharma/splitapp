@@ -28,23 +28,23 @@ const ForgotPasswordPage = () => {
     if (sent) return (
         <AuthLayout>
             <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-8 h-8 text-green-500" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto gradient-green shadow-glow">
+                    <CheckCircle className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
-                <p className="text-sm text-gray-500">If that email is registered, we've sent a password reset link.</p>
-                <Link to="/login" className="block text-sm text-primary-600 hover:text-primary-700 font-medium">Back to login</Link>
+                <h2 className="text-xl font-bold text-default">Check your email</h2>
+                <p className="text-sm text-muted">If that email is registered, we've sent a password reset link.</p>
+                <Link to="/login" className="block text-sm text-primary-500 hover:text-primary-400 font-medium">Back to login</Link>
             </div>
         </AuthLayout>
     )
 
     return (
         <AuthLayout>
-            <Link to="/login" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+            <Link to="/login" className="flex items-center gap-1 text-sm text-muted hover:text-default mb-4">
                 <ArrowLeft className="w-4 h-4" /> Back to login
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Forgot password?</h1>
-            <p className="text-sm text-gray-500 mb-6">Enter your email and we'll send you a reset link.</p>
+            <h1 className="text-2xl font-bold text-default mb-1">Forgot password?</h1>
+            <p className="text-sm text-muted mb-6">Enter your email and we'll send you a reset link.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Email" type="email" icon={Mail} placeholder="you@example.com" error={errors.email?.message}

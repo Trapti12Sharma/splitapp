@@ -1,43 +1,74 @@
-import { forwardRef } from 'react'
+import { forwardRef, useId, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
-const Input = forwardRef(({ label, error, helper, icon: Icon, className = '', type = 'text', ...props }, ref) => {
-    return (
-        <div className="w-full">
-            {label && (
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    {label}
-                </label>
-            )}
-            <div className="relative">
-                {Icon && (
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                    </div>
+/**
+ * Styling now comes from the `.field` token class in index.css, so inputs look
+ * correct in both themes without a pile of `dark:` variants that had to be kept
+ * in sync by hand.
+ */
+const Input = forwardRef(
+    ({ label, error, helper, icon: Icon, className = '', type = 'text', ...props }, ref) => {
+        const id = useId()
+        const [revealed, setRevealed] = useState(false)
+
+        const isPassword = type === 'password'
+        const resolvedType = isPassword && revealed ? 'text' : type
+
+        return (
+            <div className="w-full">
+                {label && (
+                    <label htmlFor={id} className="block text-sm font-semibold text-muted mb-1.5">
+                        {label}
+                    </label>
                 )}
-                <input
-                    ref={ref}
-                    type={type}
-                    className={`
-            w-full rounded-xl border text-sm transition-all duration-150 outline-none
-            px-3.5 py-2.5
-            bg-gray-50 dark:bg-white/5
-            text-gray-900 dark:text-white
-            placeholder:text-gray-400 dark:placeholder:text-gray-600
-            focus:ring-2 focus:ring-primary-500/30
-            disabled:opacity-50 disabled:cursor-not-allowed
-            ${error
-                            ? 'border-red-400 dark:border-red-500 focus:border-red-400'
-                            : 'border-gray-200 dark:border-white/10 focus:border-primary-400 dark:focus:border-primary-500'}
-            ${Icon ? 'pl-10' : ''}
-            ${className}
-          `}
-                    {...props}
-                />
+
+                <div className="relative">
+                    {Icon && (
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <Icon className="w-4 h-4 text-subtle" />
+                        </div>
+                    )}
+
+                    <input
+                        id={id}
+                        ref={ref}
+                        type={resolvedType}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error || helper ? `${id}-desc` : undefined}
+                        className={`field ${error ? 'field-error' : ''} ${Icon ? 'pl-10' : ''} ${
+                            isPassword ? 'pr-11' : ''
+                        } ${className}`}
+                        {...props}
+                    />
+
+                    {/* Password fields are easy to mistype on mobile — let people check. */}
+                    {isPassword && (
+                        <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setRevealed((v) => !v)}
+                            aria-label={revealed ? 'Hide password' : 'Show password'}
+                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-subtle hover:text-default transition-colors"
+                        >
+                            {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    )}
+                </div>
+
+                {error && (
+                    <p id={`${id}-desc`} className="mt-1.5 text-xs font-medium text-red-500 dark:text-red-400">
+                        {error}
+                    </p>
+                )}
+                {helper && !error && (
+                    <p id={`${id}-desc`} className="mt-1.5 text-xs text-subtle">
+                        {helper}
+                    </p>
+                )}
             </div>
-            {error && <p className="mt-1.5 text-xs font-medium text-red-500 dark:text-red-400">{error}</p>}
-            {helper && !error && <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-500">{helper}</p>}
-        </div>
-    )
-})
+        )
+    }
+)
+
 Input.displayName = 'Input'
 export default Input

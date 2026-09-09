@@ -10,6 +10,7 @@ import Input from '../components/common/Input'
 import CurrencyDisplay from '../components/common/CurrencyDisplay'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
 import EmptyState from '../components/common/EmptyState'
+import PageHeader from '../components/common/PageHeader'
 
 const FriendsPage = () => {
     const [tab, setTab] = useState('friends')
@@ -78,16 +79,13 @@ const FriendsPage = () => {
 
     return (
         <div className="space-y-5 animate-fade-in">
-            <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Friends</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your connections</p>
-            </div>
+            <PageHeader icon={Users} title="Friends" subtitle="Manage your connections" />
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'rgba(99,102,241,0.08)' }}>
+            <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{ background: 'var(--brand-soft)' }}>
                 {tabs.map(({ id, label, count }) => (
                     <button key={id} onClick={() => setTab(id)}
-                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === id ? 'gradient-primary text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === id ? 'gradient-primary text-white shadow-sm' : 'text-muted hover:text-muted dark:hover:text-gray-200'
                             }`}>
                         {label}{count > 0 && <span className={`ml-1.5 text-xs rounded-full px-1.5 ${tab === id ? 'bg-white/25' : 'bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400'}`}>{count}</span>}
                     </button>
@@ -105,10 +103,10 @@ const FriendsPage = () => {
                                     className="glass-card card-hover rounded-2xl p-4 flex items-center gap-3">
                                     <Avatar user={friend} size="md" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-gray-900 dark:text-white truncate">{friend.name}</p>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500">@{friend.username}</p>
+                                        <p className="font-bold text-default truncate">{friend.name}</p>
+                                        <p className="text-xs text-subtle">@{friend.username}</p>
                                     </div>
-                                    <CurrencyDisplay amount={balance} size="sm" showLabel />
+                                    <CurrencyDisplay amount={balance} size="sm" pill />
                                 </Link>
                             ))}
                         </div>
@@ -123,8 +121,8 @@ const FriendsPage = () => {
                             <div key={req._id} className="glass-card rounded-2xl p-4 flex items-center gap-3">
                                 <Avatar user={req.requester} size="md" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-gray-900 dark:text-white">{req.requester?.name}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">@{req.requester?.username}</p>
+                                    <p className="font-bold text-default">{req.requester?.name}</p>
+                                    <p className="text-xs text-subtle">@{req.requester?.username}</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => handleAccept(req._id)} disabled={actionLoading[req._id]}
@@ -145,10 +143,10 @@ const FriendsPage = () => {
             {tab === 'find' && (
                 <div className="space-y-4">
                     <Input icon={Search} placeholder="Search by name, username, or email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                    {searchLoading && <p className="text-sm text-gray-400">Searching...</p>}
+                    {searchLoading && <p className="text-sm text-subtle">Searching...</p>}
                     {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
                         <div className="glass-card rounded-2xl p-8 text-center">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No users found for "{searchQuery}"</p>
+                            <p className="text-sm text-muted">No users found for "{searchQuery}"</p>
                         </div>
                     )}
                     <div className="space-y-3">
@@ -156,8 +154,8 @@ const FriendsPage = () => {
                             <div key={u._id} className="glass-card rounded-2xl p-4 flex items-center gap-3">
                                 <Avatar user={u} size="md" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-gray-900 dark:text-white">{u.name}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">@{u.username}</p>
+                                    <p className="font-bold text-default">{u.name}</p>
+                                    <p className="text-xs text-subtle">@{u.username}</p>
                                 </div>
                                 <Button size="sm" variant="secondary" loading={actionLoading[u._id]} onClick={() => handleSendRequest(u._id)}>
                                     <UserPlus className="w-3.5 h-3.5" /> Add

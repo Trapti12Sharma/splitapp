@@ -3,18 +3,20 @@ import { Bell, CheckCheck } from 'lucide-react'
 import { notificationService } from '../services/notificationService'
 import { formatRelativeDate } from '../utils/formatDate'
 import Button from '../components/common/Button'
+import PageHeader from '../components/common/PageHeader'
 import EmptyState from '../components/common/EmptyState'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
 
 const TYPE_CONFIG = {
-    friend_request: { emoji: '👋', color: 'from-blue-500 to-cyan-500' },
-    friend_accepted: { emoji: '🤝', color: 'from-emerald-500 to-teal-500' },
-    group_added: { emoji: '👥', color: 'from-violet-500 to-purple-600' },
-    expense_added: { emoji: '💸', color: 'from-orange-500 to-amber-500' },
-    expense_edited: { emoji: '✏️', color: 'from-blue-500 to-indigo-500' },
-    expense_deleted: { emoji: '🗑️', color: 'from-red-500 to-rose-500' },
-    settlement_received: { emoji: '✅', color: 'from-emerald-500 to-green-500' },
+    friend_request: { emoji: '👋', color: '#0ea5e9' },
+    friend_accepted: { emoji: '🤝', color: '#10b981' },
+    group_added: { emoji: '👥', color: '#8b5cf6' },
+    expense_added: { emoji: '💸', color: '#f97316' },
+    expense_edited: { emoji: '✏️', color: '#6366f1' },
+    expense_deleted: { emoji: '🗑️', color: '#f43f5e' },
+    settlement_received: { emoji: '✅', color: '#14b8a6' },
 }
+const FALLBACK_CONFIG = { emoji: '🔔', color: '#9ca3af' }
 
 const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([])
@@ -46,40 +48,45 @@ const NotificationsPage = () => {
 
     return (
         <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Notifications</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {unread > 0 ? `${unread} unread` : 'All caught up!'}
-                    </p>
-                </div>
-                {unread > 0 && (
+            <PageHeader
+                icon={Bell}
+                title="Notifications"
+                subtitle={unread > 0 ? `${unread} unread` : 'All caught up!'}
+                actions={unread > 0 && (
                     <Button variant="secondary" size="sm" loading={markingAll} onClick={markAll}>
                         <CheckCheck className="w-4 h-4" /> Mark all read
                     </Button>
                 )}
-            </div>
+            />
 
             {loading ? <LoadingSkeleton count={5} /> :
                 notifications.length === 0
                     ? <EmptyState icon={Bell} title="No notifications" description="You're all caught up!" />
                     : (
-                        <div className="glass-card rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-white/5">
+                        <div className="glass-card rounded-2xl overflow-hidden divide-y divide-token">
                             {notifications.map(n => {
-                                const config = TYPE_CONFIG[n.type] || { emoji: '🔔', color: 'from-gray-400 to-gray-500' }
+                                const config = TYPE_CONFIG[n.type] || FALLBACK_CONFIG
                                 return (
-                                    <div key={n._id} onClick={() => { if (!n.isRead) markOne(n._id) }}
-                                        className={`flex gap-3 px-4 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/3 transition-colors ${!n.isRead ? 'bg-primary-50/50 dark:bg-primary-950/20' : ''}`}>
-                                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center text-lg flex-shrink-0`}>
+                                    <button
+                                        key={n._id}
+                                        type="button"
+                                        onClick={() => { if (!n.isRead) markOne(n._id) }}
+                                        className="w-full text-left flex gap-3 pl-3.5 pr-4 py-4 cursor-pointer hover-surface transition-colors border-l-4"
+                                        style={{ borderLeftColor: n.isRead ? 'transparent' : config.color }}
+                                    >
+                                        <div
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                                            style={{ background: `${config.color}22` }}
+                                        >
                                             {config.emoji}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{n.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
-                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-medium">{formatRelativeDate(n.createdAt)}</p>
+                                            <p className={`text-sm text-default ${n.isRead ? 'font-semibold' : 'font-extrabold'}`}>{n.title}</p>
+                                            <p className="text-xs text-muted mt-0.5 line-clamp-2">{n.message}</p>
+                                            <p className="text-[10px] text-subtle mt-1 font-medium">{formatRelativeDate(n.createdAt)}</p>
                                         </div>
-                                        {!n.isRead && <div className="w-2.5 h-2.5 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />}
-                                    </div>
+                                        {!n.isRead && <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: config.color }} />}
+                                    </button>
                                 )
                             })}
                         </div>

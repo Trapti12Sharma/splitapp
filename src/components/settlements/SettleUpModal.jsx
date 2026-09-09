@@ -42,13 +42,13 @@ const SettleUpModal = ({ isOpen, onClose, defaultTo, defaultAmount = 0, groupId,
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Settle Up" size="sm">
             {defaultTo && (
-                <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl" style={{ background: 'var(--brand-soft)' }}>
                     <Avatar user={defaultTo} size="md" />
                     <div>
-                        <p className="text-sm font-bold text-white">Paying {defaultTo.name}</p>
-                        <p className="text-xs text-gray-400">@{defaultTo.username}</p>
+                        <p className="text-sm font-bold text-default">Paying {defaultTo.name}</p>
+                        <p className="text-xs text-subtle">@{defaultTo.username}</p>
                         {defaultAmount > 0 && (
-                            <p className="text-xs text-primary-400 font-semibold mt-0.5">Suggested: {formatCurrency(defaultAmount)}</p>
+                            <p className="text-xs text-primary-500 font-semibold mt-0.5">Suggested: {formatCurrency(defaultAmount)}</p>
                         )}
                     </div>
                 </div>
@@ -61,9 +61,9 @@ const SettleUpModal = ({ isOpen, onClose, defaultTo, defaultAmount = 0, groupId,
                             {...register('amount', { required: 'Amount is required', min: { value: 0.01, message: 'Must be > 0' } })} />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-1.5">Currency</label>
-                        <select className="h-[42px] rounded-xl border border-white/10 bg-white/5 text-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30" {...register('currency')}>
-                            {CURRENCIES.map(c => <option key={c} value={c} style={{ background: '#16162a' }}>{c}</option>)}
+                        <label className="block text-sm font-semibold text-muted mb-1.5">Currency</label>
+                        <select className="field h-[42px] w-24" {...register('currency')}>
+                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                 </div>

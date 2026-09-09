@@ -9,8 +9,8 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title = 'Are you sure?', me
                 <AlertTriangle className="w-7 h-7 text-red-400" />
             </div>
             <div>
-                <h3 className="text-base font-bold text-white">{title}</h3>
-                <p className="mt-1 text-sm text-gray-400">{message}</p>
+                <h3 className="text-base font-bold text-default">{title}</h3>
+                <p className="mt-1 text-sm text-muted">{message}</p>
             </div>
             <div className="flex gap-3 w-full">
                 <Button variant="secondary" className="flex-1" onClick={onClose} disabled={loading}>{cancelLabel}</Button>

@@ -35,15 +35,15 @@ const ResetPasswordPage = () => {
         <AuthLayout>
             <div className="text-center space-y-3">
                 <p className="text-red-500 font-medium">Invalid or missing reset token</p>
-                <Link to="/forgot-password" className="text-sm text-primary-600">Request a new reset link</Link>
+                <Link to="/forgot-password" className="text-sm text-primary-500">Request a new reset link</Link>
             </div>
         </AuthLayout>
     )
 
     return (
         <AuthLayout>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Reset password</h1>
-            <p className="text-sm text-gray-500 mb-6">Choose a new password for your account.</p>
+            <h1 className="text-2xl font-bold text-default mb-1">Reset password</h1>
+            <p className="text-sm text-muted mb-6">Choose a new password for your account.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="New Password" type="password" icon={Lock} placeholder="Min 6 characters" error={errors.password?.message}

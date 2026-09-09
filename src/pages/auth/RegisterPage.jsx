@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { User, Mail, Lock, AtSign, Camera } from 'lucide-react'
+import { User, Mail, Lock, AtSign } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AuthLayout from '../../layouts/AuthLayout'
 import Input from '../../components/common/Input'
 import Button from '../../components/common/Button'
+import ImagePicker from '../../components/common/ImagePicker'
 import { useAuth } from '../../context/AuthContext'
 
 const RegisterPage = () => {
     const { register: registerUser } = useAuth()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
-    const [profilePreview, setProfilePreview] = useState(null)
+    // Held in plain state rather than registered with react-hook-form: the inline
+    // onChange used to clobber RHF's handler, so the file never reached FormData.
+    const [imageFile, setImageFile] = useState(null)
 
     const { register, handleSubmit, watch, formState: { errors } } = useForm()
     const password = watch('password')
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0]
-        if (file) setProfilePreview(URL.createObjectURL(file))
-    }
 
     const onSubmit = async (data) => {
         setLoading(true)
@@ -31,7 +29,7 @@ const RegisterPage = () => {
             formData.append('email', data.email)
             formData.append('password', data.password)
             formData.append('confirmPassword', data.confirmPassword)
-            if (data.profileImage?.[0]) formData.append('profileImage', data.profileImage[0])
+            if (imageFile) formData.append('profileImage', imageFile)
 
             await registerUser(formData)
             navigate('/dashboard', { replace: true })
@@ -45,7 +43,6 @@ const RegisterPage = () => {
             } else {
                 toast.error(msg)
             }
-            console.error('Register error:', err.response?.data)
         } finally {
             setLoading(false)
         }
@@ -53,55 +50,100 @@ const RegisterPage = () => {
 
     return (
         <AuthLayout>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Create account</h1>
-            <p className="text-sm text-gray-500 mb-6">Start splitting expenses with friends</p>
+            <div className="mb-6">
+                <h1 className="text-2xl font-extrabold text-default mb-1">Create account</h1>
+                <p className="text-sm text-muted">Start splitting expenses with friends</p>
+            </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Profile image */}
                 <div className="flex justify-center mb-2">
-                    <label className="relative cursor-pointer group">
-                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 group-hover:border-primary-400 transition-colors">
-                            {profilePreview
-                                ? <img src={profilePreview} alt="Preview" className="w-full h-full object-cover" />
-                                : <Camera className="w-7 h-7 text-gray-400" />
-                            }
-                        </div>
-                        <input type="file" accept="image/*" className="hidden" {...register('profileImage')} onChange={handleImageChange} />
-                    </label>
+                    <ImagePicker
+                        value={imageFile}
+                        onChange={setImageFile}
+                        shape="circle"
+                        size="w-20 h-20"
+                        label="Photo"
+                    />
                 </div>
 
-                <Input label="Full Name" icon={User} placeholder="Trapti Sharma" error={errors.name?.message}
-                    {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Min 2 characters' } })} />
+                <Input
+                    label="Full Name"
+                    icon={User}
+                    placeholder="Enter your full name"
+                    error={errors.name?.message}
+                    autoComplete="name"
+                    {...register('name', {
+                        required: 'Name is required',
+                        minLength: { value: 2, message: 'Min 2 characters' },
+                    })}
+                />
 
-                <Input label="Username" icon={AtSign} placeholder="trapti" error={errors.username?.message}
+                <Input
+                    label="Username"
+                    icon={AtSign}
+                    placeholder="Choose a username"
+                    helper="Letters, numbers and underscores only"
+                    error={errors.username?.message}
+                    autoComplete="username"
                     {...register('username', {
                         required: 'Username is required',
                         minLength: { value: 3, message: 'Min 3 characters' },
                         pattern: { value: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, underscores' },
-                    })} />
+                    })}
+                />
 
-                <Input label="Email" type="email" icon={Mail} placeholder="you@example.com" error={errors.email?.message}
+                <Input
+                    label="Email"
+                    type="email"
+                    icon={Mail}
+                    placeholder="you@example.com"
+                    error={errors.email?.message}
+                    autoComplete="email"
                     {...register('email', {
                         required: 'Email is required',
                         pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' },
-                    })} />
+                    })}
+                />
 
-                <Input label="Password" type="password" icon={Lock} placeholder="Min 6 characters" error={errors.password?.message}
-                    {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Min 6 characters' } })} />
+                <Input
+                    label="Password"
+                    type="password"
+                    icon={Lock}
+                    placeholder="At least 6 characters"
+                    error={errors.password?.message}
+                    autoComplete="new-password"
+                    {...register('password', {
+                        required: 'Password is required',
+                        minLength: { value: 6, message: 'Min 6 characters' },
+                    })}
+                />
 
-                <Input label="Confirm Password" type="password" icon={Lock} placeholder="Repeat password" error={errors.confirmPassword?.message}
+                <Input
+                    label="Confirm Password"
+                    type="password"
+                    icon={Lock}
+                    placeholder="Re-enter your password"
+                    error={errors.confirmPassword?.message}
+                    autoComplete="new-password"
                     {...register('confirmPassword', {
                         required: 'Please confirm your password',
                         validate: (v) => v === password || 'Passwords do not match',
-                    })} />
+                    })}
+                />
 
-                <Button type="submit" className="w-full" loading={loading}>Create account</Button>
+                <Button type="submit" className="w-full" loading={loading} size="lg">
+                    Create account
+                </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-500">
-                Already have an account?{' '}
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">Sign in</Link>
-            </p>
+            <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: 'var(--border)' }}>
+                <p className="text-sm text-muted">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-primary-500 hover:text-primary-400 font-semibold transition-colors">
+                        Sign in
+                    </Link>
+                </p>
+            </div>
         </AuthLayout>
     )
 }

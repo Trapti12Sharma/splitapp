@@ -1,40 +1,72 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 
-// Auth Pages
+// Auth pages are needed immediately on a cold visit, so they stay in the main bundle.
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
-
-// App Pages
 import DashboardPage from './pages/DashboardPage'
-import FriendsPage from './pages/FriendsPage'
-import FriendDetailPage from './pages/FriendDetailPage'
-import GroupsPage from './pages/GroupsPage'
-import CreateGroupPage from './pages/CreateGroupPage'
-import GroupDetailPage from './pages/GroupDetailPage'
-import ExpensesPage from './pages/ExpensesPage'
-import ExpenseDetailPage from './pages/ExpenseDetailPage'
-import SettlementsPage from './pages/SettlementsPage'
-import AnalyticsPage from './pages/AnalyticsPage'
-import NotificationsPage from './pages/NotificationsPage'
-import ProfilePage from './pages/ProfilePage'
-import SettingsPage from './pages/SettingsPage'
 
-const App = () => {
-    return (
-        <BrowserRouter>
+// Everything else is loaded on demand. Previously every page — including the
+// chart-heavy Analytics screen — was in one 800 kB bundle that had to download
+// before anything rendered.
+const FriendsPage = lazy(() => import('./pages/FriendsPage'))
+const FriendDetailPage = lazy(() => import('./pages/FriendDetailPage'))
+const GroupsPage = lazy(() => import('./pages/GroupsPage'))
+const CreateGroupPage = lazy(() => import('./pages/CreateGroupPage'))
+const GroupDetailPage = lazy(() => import('./pages/GroupDetailPage'))
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'))
+const ExpenseDetailPage = lazy(() => import('./pages/ExpenseDetailPage'))
+const SettlementsPage = lazy(() => import('./pages/SettlementsPage'))
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+
+const PageLoader = () => (
+    <div className="flex items-center justify-center py-24">
+        <div className="w-9 h-9 border-[3px] border-primary-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+)
+
+// Protected pages all share the same shell; this keeps the route table readable.
+const protectedPage = (Page) => (
+    <ProtectedRoute>
+        <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+                <Page />
+            </Suspense>
+        </AppLayout>
+    </ProtectedRoute>
+)
+
+const App = () => (
+    <BrowserRouter>
+        <ThemeProvider>
             <AuthProvider>
                 <Toaster
                     position="top-right"
                     toastOptions={{
                         duration: 3000,
-                        style: { fontSize: '14px', borderRadius: '10px', maxWidth: '380px' },
-                        success: { iconTheme: { primary: '#6366f1', secondary: '#fff' } },
+                        // Token-driven so toasts match the active theme instead of
+                        // always rendering on a white card.
+                        style: {
+                            fontSize: '14px',
+                            borderRadius: '12px',
+                            maxWidth: '380px',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-lg)',
+                        },
+                        success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                        error: { iconTheme: { primary: '#f43f5e', secondary: '#fff' } },
                     }}
                 />
                 <Routes>
@@ -45,27 +77,27 @@ const App = () => {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                     {/* Protected routes */}
-                    <Route path="/" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/friends" element={<ProtectedRoute><AppLayout><FriendsPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/friends/:id" element={<ProtectedRoute><AppLayout><FriendDetailPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/groups" element={<ProtectedRoute><AppLayout><GroupsPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/groups/create" element={<ProtectedRoute><AppLayout><CreateGroupPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/groups/:id" element={<ProtectedRoute><AppLayout><GroupDetailPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/expenses" element={<ProtectedRoute><AppLayout><ExpensesPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/expenses/:id" element={<ProtectedRoute><AppLayout><ExpenseDetailPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/settlements" element={<ProtectedRoute><AppLayout><SettlementsPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/analytics" element={<ProtectedRoute><AppLayout><AnalyticsPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/notifications" element={<ProtectedRoute><AppLayout><NotificationsPage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsPage /></AppLayout></ProtectedRoute>} />
+                    <Route path="/" element={protectedPage(DashboardPage)} />
+                    <Route path="/dashboard" element={protectedPage(DashboardPage)} />
+                    <Route path="/friends" element={protectedPage(FriendsPage)} />
+                    <Route path="/friends/:id" element={protectedPage(FriendDetailPage)} />
+                    <Route path="/groups" element={protectedPage(GroupsPage)} />
+                    <Route path="/groups/create" element={protectedPage(CreateGroupPage)} />
+                    <Route path="/groups/:id" element={protectedPage(GroupDetailPage)} />
+                    <Route path="/expenses" element={protectedPage(ExpensesPage)} />
+                    <Route path="/expenses/:id" element={protectedPage(ExpenseDetailPage)} />
+                    <Route path="/settlements" element={protectedPage(SettlementsPage)} />
+                    <Route path="/analytics" element={protectedPage(AnalyticsPage)} />
+                    <Route path="/notifications" element={protectedPage(NotificationsPage)} />
+                    <Route path="/profile" element={protectedPage(ProfilePage)} />
+                    <Route path="/settings" element={protectedPage(SettingsPage)} />
 
                     {/* Fallback */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
             </AuthProvider>
-        </BrowserRouter>
-    )
-}
+        </ThemeProvider>
+    </BrowserRouter>
+)
 
 export default App

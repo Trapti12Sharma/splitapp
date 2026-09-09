@@ -6,14 +6,15 @@ import Modal from '../common/Modal'
 import Input from '../common/Input'
 import Button from '../common/Button'
 import Avatar from '../common/Avatar'
+import ImagePicker from '../common/ImagePicker'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import { friendService } from '../../services/friendService'
 import { useAuth } from '../../context/AuthContext'
 import { calculateSplits, validateSplits } from '../../utils/calculateSplits'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { CATEGORIES, getCategoryStyle } from '../../utils/categoryStyle'
 
-const CATEGORIES = ['Food', 'Travel', 'Shopping', 'Entertainment', 'Bills', 'Rent', 'Utilities', 'Health', 'Groceries', 'Transport', 'Other']
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP']
 const SPLIT_TYPES = [
     { value: 'equal', label: 'Equal' },
@@ -25,6 +26,7 @@ const SPLIT_TYPES = [
 const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
     const { user } = useAuth()
     const [loading, setLoading] = useState(false)
+    const [receiptFile, setReceiptFile] = useState(null)
     const [groups, setGroups] = useState([])
     const [friends, setFriends] = useState([])
     const [selectedGroup, setSelectedGroup] = useState('')
@@ -159,7 +161,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
             formData.append('splitType', splitType)
             formData.append('date', data.date)
             if (data.notes) formData.append('notes', data.notes)
-            if (data.receipt?.[0]) formData.append('receipt', data.receipt[0])
+            if (receiptFile) formData.append('receipt', receiptFile)
             formData.append('splits', JSON.stringify(splitData.map(s => ({
                 userId: s.userId,
                 amount: parseFloat(s.amount) || 0,
@@ -192,8 +194,8 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                             {...register('amount', { required: 'Required', min: { value: 0.01, message: '> 0' } })} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Currency</label>
-                        <select className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm h-[42px]" {...register('currency')}>
+                        <label className="block text-sm font-medium text-muted mb-1.5">Currency</label>
+                        <select className="field" {...register('currency')}>
                             {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                         </select>
                     </div>
@@ -202,16 +204,16 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                 {/* Group + Paid by */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Group</label>
-                        <select className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm"
+                        <label className="block text-sm font-medium text-muted mb-1.5">Group</label>
+                        <select className="field"
                             value={selectedGroup} onChange={e => setSelectedGroup(e.target.value)}>
                             <option value="">No group</option>
                             {groups.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Paid by</label>
-                        <select className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm" {...register('paidBy')}>
+                        <label className="block text-sm font-medium text-muted mb-1.5">Paid by</label>
+                        <select className="field" {...register('paidBy')}>
                             {allPeople.map(p => (
                                 <option key={p._id} value={p._id}>{p._id === user._id ? `You (${p.name})` : p.name}</option>
                             ))}
@@ -222,9 +224,9 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                 {/* Category + Date */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Category</label>
-                        <select className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm" {...register('category')}>
-                            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                        <label className="block text-sm font-medium text-muted mb-1.5">Category</label>
+                        <select className="field" {...register('category')}>
+                            {CATEGORIES.map((c) => <option key={c} value={c}>{getCategoryStyle(c).emoji} {c}</option>)}
                         </select>
                     </div>
                     <Input label="Date" type="date" {...register('date')} />
@@ -233,7 +235,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                 {/* Participants */}
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <label className="text-sm font-medium text-muted flex items-center gap-1.5">
                             <UserCheck className="w-4 h-4 text-primary-600" />
                             Split between ({selectedParticipants.length})
                         </label>
@@ -244,7 +246,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                             const selected = selectedParticipants.includes(p._id)
                             return (
                                 <button key={p._id} type="button" onClick={() => toggleParticipant(p._id)}
-                                    className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all text-left ${selected ? 'border-primary-400 bg-primary-50 dark:bg-primary-950/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                    className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all text-left ${selected ? 'border-primary-400 bg-primary-50 dark:bg-primary-950/30' : 'border-token dark:border-gray-700 hover:border-token'
                                         }`}>
                                     <div className="relative flex-shrink-0">
                                         <Avatar user={p} size="xs" />
@@ -254,7 +256,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                                             </div>
                                         )}
                                     </div>
-                                    <span className={`text-xs font-medium truncate ${selected ? 'text-primary-800 dark:text-primary-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                                    <span className={`text-xs font-medium truncate ${selected ? 'text-primary-800 dark:text-primary-300' : 'text-muted'}`}>
                                         {p._id === user._id ? 'You' : p.name?.split(' ')[0]}
                                     </span>
                                 </button>
@@ -265,11 +267,11 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
 
                 {/* Split type */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Split type</label>
-                    <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                    <label className="block text-sm font-medium text-muted mb-2">Split type</label>
+                    <div className="flex gap-1 bg-surface-2 dark:bg-gray-800 rounded-xl p-1">
                         {SPLIT_TYPES.map(({ value, label }) => (
                             <button key={value} type="button" onClick={() => setSplitType(value)}
-                                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${splitType === value ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'
+                                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${splitType === value ? 'bg-surface dark:bg-gray-700 shadow-sm text-default' : 'text-muted hover:text-muted'
                                     }`}>
                                 {label}
                             </button>
@@ -279,8 +281,8 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
 
                 {/* Split preview */}
                 {selectedParticipants.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 space-y-2">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Split Breakdown</p>
+                    <div className="bg-surface-2 dark:bg-gray-800/50 rounded-xl p-3 space-y-2">
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wide">Split Breakdown</p>
                         {selectedParticipants.map((uid, idx) => {
                             const person = allPeople.find(p => p._id === uid)
                             const preview = previewSplits[idx]
@@ -288,26 +290,26 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                             return (
                                 <div key={uid} className="flex items-center gap-2">
                                     <Avatar user={person} size="xs" />
-                                    <span className="text-xs text-gray-700 dark:text-gray-300 w-16 truncate font-medium">
+                                    <span className="text-xs text-muted w-16 truncate font-medium">
                                         {uid === user._id ? 'You' : person?.name?.split(' ')[0]}
                                     </span>
                                     {splitType === 'exact' && (
                                         <input type="number" step="0.01" placeholder="0.00"
-                                            className="flex-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5"
+                                            className="flex-1 text-xs border border-token dark:border-gray-600 bg-surface rounded-lg px-2 py-1.5"
                                             value={sd?.amount || ''} onChange={e => updateSplitData(uid, 'amount', e.target.value)} />
                                     )}
                                     {splitType === 'percentage' && (
                                         <input type="number" step="0.1" placeholder="%"
-                                            className="flex-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5"
+                                            className="flex-1 text-xs border border-token dark:border-gray-600 bg-surface rounded-lg px-2 py-1.5"
                                             value={sd?.percentage || ''} onChange={e => updateSplitData(uid, 'percentage', e.target.value)} />
                                     )}
                                     {splitType === 'shares' && (
                                         <input type="number" step="1" min="1"
-                                            className="flex-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5"
+                                            className="flex-1 text-xs border border-token dark:border-gray-600 bg-surface rounded-lg px-2 py-1.5"
                                             value={sd?.shares || '1'} onChange={e => updateSplitData(uid, 'shares', e.target.value)} />
                                     )}
                                     {splitType === 'equal' && <div className="flex-1" />}
-                                    <span className="text-sm font-bold text-gray-900 dark:text-white w-20 text-right">
+                                    <span className="text-sm font-bold text-default w-20 text-right">
                                         {preview ? formatCurrency(preview.amount) : '—'}
                                     </span>
                                 </div>
@@ -321,12 +323,17 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
 
                 {/* Receipt */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">New Receipt (optional)</label>
-                    <input type="file" accept="image/*"
-                        className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 dark:file:bg-primary-950 file:text-primary-700 dark:file:text-primary-300"
-                        {...register('receipt')} />
+                    <label className="block text-sm font-medium text-muted mb-1.5">New Receipt (optional)</label>
+                    <ImagePicker
+                        value={receiptFile}
+                        onChange={setReceiptFile}
+                        currentUrl={expense?.receipt || null}
+                        shape="rounded"
+                        size="w-full h-28"
+                        label="Attach receipt"
+                    />
                     {expense?.receipt && (
-                        <p className="text-xs text-gray-500 mt-1">Current receipt will be kept unless you upload a new one.</p>
+                        <p className="text-xs text-muted mt-1">Current receipt will be kept unless you upload a new one.</p>
                     )}
                 </div>
 

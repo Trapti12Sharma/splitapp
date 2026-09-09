@@ -1,36 +1,257 @@
+/* @import must come before any other rule — it was previously placed after the
+   @tailwind directives, which is invalid CSS, so the font never loaded and the
+   whole app silently fell back to system-ui.
+   Fraunces is a second, deliberately distinct typeface reserved for money
+   amounts — a confident serif against the sans-serif body is what makes a
+   number on the dashboard feel designed rather than dumped into a template. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-
 @layer base {
+  /* ------------------------------------------------------------------
+     Design tokens. Every surface, border and text colour in the app
+     resolves through these, so light and dark stay in step by
+     construction instead of by remembering to add a `dark:` variant.
+     ------------------------------------------------------------------ */
   :root {
-    --color-bg: #f8f7ff;
-    --color-surface: #ffffff;
+    color-scheme: light;
+
+    --bg: #f6f7fb;
+    --bg-accent: #eef1fb;
+    --surface: #ffffff;
+    --surface-2: #f8f9fd;
+    --surface-raised: #ffffff;
+    --border: #e8eaf3;
+    --border-strong: #d9dcea;
+
+    --text: #14142b;
+    --text-muted: #5b5f7a;
+    --text-subtle: #8a8fa8;
+
+    --brand: #6366f1;
+    --brand-strong: #4f46e5;
+    --brand-soft: #eef0ff;
+
+    --positive: #059669;
+    --positive-soft: #e7f8f1;
+    --negative: #e11d48;
+    --negative-soft: #fdeef1;
+
+    --shadow-sm: 0 1px 2px rgba(20, 20, 43, 0.05), 0 1px 3px rgba(20, 20, 43, 0.04);
+    --shadow-md: 0 4px 12px rgba(20, 20, 43, 0.07), 0 2px 4px rgba(20, 20, 43, 0.04);
+    --shadow-lg: 0 12px 32px rgba(79, 70, 229, 0.12), 0 4px 12px rgba(20, 20, 43, 0.06);
+
+    --ring: rgba(99, 102, 241, 0.35);
   }
+
   .dark {
-    --color-bg: #0f0f1a;
-    --color-surface: #16162a;
+    color-scheme: dark;
+
+    --bg: #0b0b16;
+    --bg-accent: #12122a;
+    --surface: #15152b;
+    --surface-2: #1b1b34;
+    --surface-raised: #1c1c38;
+    --border: #262647;
+    --border-strong: #33335c;
+
+    --text: #edeef7;
+    --text-muted: #a4a8c4;
+    --text-subtle: #7c81a1;
+
+    --brand: #818cf8;
+    --brand-strong: #6366f1;
+    --brand-soft: rgba(99, 102, 241, 0.14);
+
+    --positive: #34d399;
+    --positive-soft: rgba(16, 185, 129, 0.14);
+    --negative: #fb7185;
+    --negative-soft: rgba(244, 63, 94, 0.14);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+
+    --ring: rgba(129, 140, 248, 0.45);
   }
+
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    /* Anchor links and route changes shouldn't jump jarringly. */
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply antialiased transition-colors duration-200;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    background-color: var(--color-bg);
-    color: #1a1a2e;
+    @apply antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    transition: background-color 0.25s ease, color 0.25s ease;
+    min-height: 100vh;
   }
-  .dark body {
-    color: #e2e2f0;
+
+  /* Subtle aurora wash behind the whole app — adds depth without competing
+     with content. Kept fixed so it doesn't move while scrolling. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 30rem at 12% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
+      radial-gradient(50rem 26rem at 92% 6%, rgba(217, 70, 239, 0.08), transparent 60%),
+      radial-gradient(46rem 26rem at 50% 108%, rgba(14, 165, 233, 0.07), transparent 60%);
+  }
+
+  .dark body::before {
+    background:
+      radial-gradient(60rem 30rem at 12% -10%, rgba(99, 102, 241, 0.20), transparent 60%),
+      radial-gradient(50rem 26rem at 92% 6%, rgba(217, 70, 239, 0.14), transparent 60%),
+      radial-gradient(46rem 26rem at 50% 108%, rgba(14, 165, 233, 0.12), transparent 60%);
+  }
+
+  /* Consistent focus ring across every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Themed scrollbars — the default light scrollbar on a dark page is jarring. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-subtle);
+    background-clip: content-box;
+  }
+
+  /* Autofill in dark mode otherwise paints an opaque white box. */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset;
+    caret-color: var(--text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Token-driven surfaces. These replace the hardcoded `#16162a` literals that
+     were scattered through the components and made light mode look broken. */
+  .surface {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .surface-2 {
+    background-color: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .glass-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-hover {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand);
+  }
+
+  /* Field styling shared by inputs, selects and textareas. */
+  .field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background-color: var(--surface-2);
+    color: var(--text);
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    outline: none;
+  }
+  .field::placeholder {
+    color: var(--text-subtle);
+  }
+  .field:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .field:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--ring);
+    background-color: var(--surface);
+  }
+  .field:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .field-error {
+    border-color: var(--negative);
+  }
+  .field-error:focus {
+    border-color: var(--negative);
+    box-shadow: 0 0 0 3px var(--negative-soft);
+  }
+
+  /* Native <option> inherits the OS palette, not ours — set it explicitly so
+     dropdowns aren't unreadable in dark mode. */
+  .field option {
+    background-color: var(--surface);
+    color: var(--text);
+  }
+
+  .divider {
+    border-color: var(--border);
   }
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white dark:bg-[#16162a] border border-gray-100 dark:border-white/5 shadow-sm;
-  }
-  .card-hover {
-    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800/50;
-  }
+  .text-default { color: var(--text); }
+  .text-muted { color: var(--text-muted); }
+  .text-subtle { color: var(--text-subtle); }
+  .bg-surface { background-color: var(--surface); }
+  .bg-surface-2 { background-color: var(--surface-2); }
+  .border-token { border-color: var(--border); }
+  .divide-token > :not([hidden]) ~ :not([hidden]) { border-color: var(--border); }
+
+  /* Row / list-item hover that works in both themes without a `dark:` pair. */
+  .hover-surface { transition: background-color 0.15s ease; }
+  .hover-surface:hover { background-color: var(--surface-2); }
+
   .gradient-primary {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
   }
@@ -43,10 +264,122 @@
   .gradient-amber {
     background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   }
+  .gradient-blue {
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  }
+  .gradient-sunset {
+    background: linear-gradient(135deg, #f97316 0%, #ec4899 55%, #8b5cf6 100%);
+  }
+  .gradient-ocean {
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #6366f1 100%);
+  }
   .gradient-text {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
   }
+
+  .shadow-token-sm { box-shadow: var(--shadow-sm); }
+  .shadow-token-md { box-shadow: var(--shadow-md); }
+  .shadow-token-lg { box-shadow: var(--shadow-lg); }
+
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ------------------------------------------------------------------
+     Signature identity: a ledger/ticket motif — this is a bill-splitting
+     app, so amounts get a distinct serif and receipts get a literal
+     torn-paper treatment instead of another flat gradient card.
+     ------------------------------------------------------------------ */
+
+  /* Reserved for money. Never used for body text or labels — the contrast
+     between this and Plus Jakarta Sans is the point. */
+  .amount {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* A small colour-and-icon chip, used for category tags and balance pills
+     so those read as distinct "stamps" rather than plain coloured text. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  /* Perforated tear line — used between "what was paid" and "how it was
+     split" on the expense detail ticket. The two notches are coloured to
+     match the page background so they read as literal punched holes. */
+  .ticket-perforation {
+    position: relative;
+    height: 0;
+    border-top: 2px dashed var(--border-strong);
+  }
+  .ticket-perforation::before,
+  .ticket-perforation::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg);
+    transform: translateY(-50%);
+  }
+  .ticket-perforation::before { left: -1.75rem; }
+  .ticket-perforation::after { right: -1.75rem; }
+
+  /* Scalloped tear edge along the bottom of the expense-detail hero band —
+     cuts a row of small semicircles out of the element so the surface
+     underneath shows through, like a receipt torn off a roll.
+     The mask tile is as tall as the element itself (100%) with the notch
+     circle centred on its bottom edge — everywhere more than `--scallop/2`
+     from that point stays fully opaque. Making the notch the ONLY masked
+     region (rather than confining the mask image to a short strip near the
+     bottom) matters: CSS treats any area a repeating mask image doesn't
+     cover as fully transparent, so an earlier version of this recipe that
+     sized the tile to just the strip height ended up hiding the entire
+     band above it instead of only the intended notches. */
+  .scallop-edge {
+    --scallop: 22px;
+    -webkit-mask-image: radial-gradient(
+      circle at calc(var(--scallop) / 2) 100%,
+      transparent calc(var(--scallop) / 2 - 1px),
+      black calc(var(--scallop) / 2)
+    );
+    mask-image: radial-gradient(
+      circle at calc(var(--scallop) / 2) 100%,
+      transparent calc(var(--scallop) / 2 - 1px),
+      black calc(var(--scallop) / 2)
+    );
+    -webkit-mask-size: var(--scallop) 100%;
+    mask-size: var(--scallop) 100%;
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    -webkit-mask-position: bottom left;
+    mask-position: bottom left;
+  }
+
+  /* Shimmer used by loading skeletons. */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 25%,
+      var(--border) 37%,
+      var(--surface-2) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
 }

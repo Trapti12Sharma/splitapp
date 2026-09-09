@@ -7,8 +7,8 @@ const EmptyState = ({ icon: Icon, title, description, action, actionLabel }) => 
                 <Icon className="w-8 h-8 text-white" />
             </div>
         )}
-        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
-        {description && <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm">{description}</p>}
+        <h3 className="text-base font-bold text-default mb-1">{title}</h3>
+        {description && <p className="text-sm text-muted mb-6 max-w-sm">{description}</p>}
         {action && actionLabel && (
             <Button onClick={action} size="sm">{actionLabel}</Button>
         )}

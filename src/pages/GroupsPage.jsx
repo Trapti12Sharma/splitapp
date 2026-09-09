@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Users, ChevronRight, Sparkles } from 'lucide-react'
+import { Plus, Users, UsersRound, ChevronRight, Sparkles } from 'lucide-react'
 import { groupService } from '../services/groupService'
 import { formatCurrency } from '../utils/formatCurrency'
 import Button from '../components/common/Button'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
+import PageHeader from '../components/common/PageHeader'
 
 const GROUP_GRADIENTS = [
     'from-violet-500 to-purple-600',
@@ -28,21 +29,19 @@ const GroupsPage = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Groups</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {groups.length > 0 ? `${groups.length} active group${groups.length > 1 ? 's' : ''}` : 'Split with teams'}
-                    </p>
-                </div>
-                <Link to="/groups/create">
-                    <Button className="gap-1.5">
-                        <Plus className="w-4 h-4" />
-                        New Group
-                    </Button>
-                </Link>
-            </div>
+            <PageHeader
+                icon={UsersRound}
+                title="Groups"
+                subtitle={groups.length > 0 ? `${groups.length} active group${groups.length > 1 ? 's' : ''}` : 'Split with teams'}
+                actions={
+                    <Link to="/groups/create">
+                        <Button className="gap-1.5">
+                            <Plus className="w-4 h-4" />
+                            New Group
+                        </Button>
+                    </Link>
+                }
+            />
 
             {loading ? (
                 <LoadingSkeleton count={4} />
@@ -52,8 +51,8 @@ const GroupsPage = () => {
                     <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-glow">
                         <Users className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No groups yet</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
+                    <h3 className="text-lg font-bold text-default mb-2">No groups yet</h3>
+                    <p className="text-sm text-muted mb-6 max-w-xs mx-auto">
                         Create a group to split expenses with roommates, friends, or for trips
                     </p>
                     <Link to="/groups/create">
@@ -85,16 +84,16 @@ const GroupsPage = () => {
                                             </div>
                                         )}
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-base leading-tight">
+                                            <h3 className="font-bold text-default truncate text-base leading-tight">
                                                 {g.name}
                                             </h3>
                                             {g.description && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                                                <p className="text-xs text-muted mt-0.5 line-clamp-1">
                                                     {g.description}
                                                 </p>
                                             )}
                                         </div>
-                                        <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
+                                        <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
                                     </div>
 
                                     {/* Members avatars */}
@@ -115,12 +114,12 @@ const GroupsPage = () => {
                                                     )
                                                 })}
                                                 {g.members?.length > 4 && (
-                                                    <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-300 text-[10px] font-bold">
+                                                    <div className="w-7 h-7 rounded-full bg-surface-2 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-muted dark:text-subtle text-[10px] font-bold">
                                                         +{g.members.length - 4}
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+                                            <span className="text-xs text-subtle ml-2">
                                                 {g.members?.length} member{g.members?.length !== 1 ? 's' : ''}
                                             </span>
                                         </div>
@@ -136,11 +135,11 @@ const GroupsPage = () => {
 
                     {/* Add group card */}
                     <Link to="/groups/create"
-                        className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-600 flex flex-col items-center justify-center p-8 gap-3 transition-all duration-200 group min-h-[160px]">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 group-hover:gradient-primary flex items-center justify-center transition-all">
-                            <Plus className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-primary-600" />
+                        className="rounded-2xl border-2 border-dashed border-token dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-600 flex flex-col items-center justify-center p-8 gap-3 transition-all duration-200 group min-h-[160px]">
+                        <div className="w-10 h-10 rounded-xl bg-surface-2 dark:bg-gray-800 group-hover:gradient-primary flex items-center justify-center transition-all">
+                            <Plus className="w-5 h-5 text-subtle group-hover:text-primary-600" />
                         </div>
-                        <p className="text-sm font-semibold text-gray-400 dark:text-gray-500 group-hover:text-primary-600 transition-colors">
+                        <p className="text-sm font-semibold text-subtle group-hover:text-primary-600 transition-colors">
                             New Group
                         </p>
                     </Link>

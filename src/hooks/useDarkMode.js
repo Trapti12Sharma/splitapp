@@ -1,25 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useTheme } from '../context/ThemeContext'
 
-export const useDarkMode = () => {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const stored = localStorage.getItem('theme')
-    if (stored) return stored === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
+/**
+ * Backwards-compatible alias for `useTheme`.
+ *
+ * This was previously a standalone `useState` hook, so each component that called
+ * it held its own independent copy of the theme and toggling in one place left
+ * the others stale. It now delegates to the single ThemeContext; the old name is
+ * kept so existing imports keep working.
+ */
+export const useDarkMode = useTheme
 
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDark) {
-      root.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
-  }, [isDark])
-
-  const toggle = () => setIsDark((prev) => !prev)
-
-  return { isDark, toggle }
-}
+export default useDarkMode

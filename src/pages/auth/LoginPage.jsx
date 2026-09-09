@@ -30,8 +30,8 @@ const LoginPage = () => {
     return (
         <AuthLayout>
             <div className="mb-7">
-                <h1 className="text-2xl font-extrabold text-white mb-1">Welcome back</h1>
-                <p className="text-sm text-gray-400">Sign in to continue</p>
+                <h1 className="text-2xl font-extrabold text-default mb-1">Welcome back</h1>
+                <p className="text-sm text-subtle">Sign in to continue</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -44,7 +44,7 @@ const LoginPage = () => {
                     {...register('password', { required: 'Password is required' })} />
 
                 <div className="flex justify-end">
-                    <Link to="/forgot-password" className="text-xs font-semibold text-primary-400 hover:text-primary-300 transition-colors">
+                    <Link to="/forgot-password" className="text-xs font-semibold text-primary-500 hover:text-primary-400 transition-colors">
                         Forgot password?
                     </Link>
                 </div>
@@ -54,10 +54,10 @@ const LoginPage = () => {
                 </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-white/8 text-center">
-                <p className="text-sm text-gray-400">
+            <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: 'var(--border)' }}>
+                <p className="text-sm text-subtle">
                     Don't have an account?{' '}
-                    <Link to="/register" className="text-primary-400 hover:text-primary-300 font-semibold transition-colors">
+                    <Link to="/register" className="text-primary-500 hover:text-primary-400 font-semibold transition-colors">
                         Create one
                     </Link>
                 </p>

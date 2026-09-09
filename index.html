@@ -21,6 +21,21 @@
     <meta name="description" content="Split expenses with friends and groups. Track who owes whom and settle up easily." />
   </head>
   <body>
+    <!-- Apply the stored theme before React mounts, otherwise a dark-mode user
+         sees a white flash on every page load. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var dark = stored === 'dark' ||
+            (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#0b0b16' : '#f6f7fb');
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <!-- Register Service Worker (production only) -->
