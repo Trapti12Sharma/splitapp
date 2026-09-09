@@ -22,7 +22,15 @@ const Sidebar = () => {
 
     return (
         <aside
-            className="hidden lg:flex flex-col w-[240px] min-h-screen fixed left-0 top-0 z-30 border-r"
+            // `h-screen` (a fixed height), not `min-h-screen` (only a floor) — this
+            // element is `fixed`, so it never scrolls with the page. With a min
+            // height, the flex column grows to fit ALL its content (logo + every
+            // nav item + the bottom section) whenever that's taller than the
+            // viewport, pushing Settings/Profile/Logout off the bottom of the
+            // screen with no way to reach them. A fixed height instead gives the
+            // nav's `flex-1` a real budget to shrink into, so it scrolls
+            // internally and the bottom section stays pinned and visible.
+            className="hidden lg:flex flex-col w-[240px] h-screen fixed left-0 top-0 z-30 border-r"
             style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
         >
             {/* Logo */}
@@ -36,8 +44,10 @@ const Sidebar = () => {
                 </div>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            {/* Navigation — `min-h-0` overrides a flex item's default min-height:auto,
+                which otherwise stops it shrinking below its content size and
+                silently defeats `overflow-y-auto` here. */}
+            <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
                 <p className="text-[10px] font-semibold text-subtle uppercase tracking-widest px-3 mb-2">Menu</p>
                 {navItems.map(({ to, icon: Icon, label, badge, tint }) => (
                     <NavLink
