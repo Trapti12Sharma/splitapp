@@ -48,10 +48,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
-        // Reserved for money amounts (see the `.amount` utility) — a deliberate
-        // serif/sans contrast instead of one typeface for everything.
-        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+        // A bold geometric grotesque — the CRED/Zomato register — used for
+        // everything. See the `.amount` utility in index.css for the tabular
+        // tightened-tracking treatment applied to money on top of this.
+        sans: ['Sora', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '1rem', '3xl': '1.5rem', '4xl': '2rem',

@@ -1,10 +1,12 @@
 /* @import must come before any other rule — it was previously placed after the
    @tailwind directives, which is invalid CSS, so the font never loaded and the
    whole app silently fell back to system-ui.
-   Fraunces is a second, deliberately distinct typeface reserved for money
-   amounts — a confident serif against the sans-serif body is what makes a
-   number on the dashboard feel designed rather than dumped into a template. */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+   Sora is a bold, geometric grotesque — the same register as the typefaces
+   behind CRED and Zomato's apps (Gilroy / Okra), rather than a generic
+   humanist sans. One family for everything, leaning on its heavier weights
+   for money and headings, is what gives those apps their confident look —
+   not a serif/sans contrast. */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -90,7 +92,7 @@
 
   body {
     @apply antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Sora', system-ui, -apple-system, sans-serif;
     background-color: var(--bg);
     color: var(--text);
     transition: background-color 0.25s ease, color 0.25s ease;
@@ -291,12 +293,15 @@
      torn-paper treatment instead of another flat gradient card.
      ------------------------------------------------------------------ */
 
-  /* Reserved for money. Never used for body text or labels — the contrast
-     between this and Plus Jakarta Sans is the point. */
+  /* Money gets tight tracking and tabular figures on top of the app's one
+     font — the CRED/Zomato treatment is a confident geometric sans at a
+     heavy weight, not a second typeface for contrast. Weight itself is left
+     to each usage's own font-bold/font-extrabold class rather than set here,
+     so it doesn't fight Tailwind's utility for priority. */
   .amount {
-    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-family: 'Sora', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   /* A small colour-and-icon chip, used for category tags and balance pills
