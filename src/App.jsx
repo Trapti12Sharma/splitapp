@@ -63,7 +63,7 @@ const App = () => (
                     position="top-center"
                     containerStyle={{ top: 72 }}
                     toastOptions={{
-                        duration: 3000,
+                        duration: 2000,
                         // Token-driven so toasts match the active theme instead of
                         // always rendering on a white card.
                         style: {

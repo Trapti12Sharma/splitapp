@@ -478,10 +478,10 @@ const GroupDetailPage = () => {
                                         </span>
                                     )}
                                     {isAdmin && !isSelf && (
-                                        <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name}`}
-                                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-                                            style={{ background: 'var(--negative-soft)' }}>
-                                            <X className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
+                                        <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name} from group`}
+                                            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:opacity-80"
+                                            style={{ background: 'var(--negative-soft)', color: 'var(--negative)' }}>
+                                            Remove
                                         </button>
                                     )}
                                 </div>

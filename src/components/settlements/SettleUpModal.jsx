@@ -66,7 +66,7 @@ const SettleUpModal = ({ isOpen, onClose, defaultFrom, defaultAmount = 0, groupI
                 note: data.note,
                 group: groupId || undefined,
             })
-            toast.success('Payment confirmed!')
+            toast.success('Settled up!')
             reset()
             onSuccess?.()
         } catch (err) {
