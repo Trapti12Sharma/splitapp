@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, UsersRound, Receipt, ArrowLeftRight, BarChart3, Bell, Settings, LogOut, Wallet, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, Users, UsersRound, Receipt, ArrowLeftRight, BarChart3, Settings, LogOut, Wallet, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useNotifications } from '../../context/NotificationContext'
 import { useTheme } from '../../context/ThemeContext'
 import Avatar from '../common/Avatar'
 
+// Notifications used to be a full nav item here (with its own unread badge) —
+// it's reached via the bell in the desktop header now instead, same as
+// mobile already does with its own header bell.
 const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', tint: 'from-indigo-500 to-violet-600' },
     { to: '/friends', icon: Users, label: 'Friends', tint: 'from-sky-500 to-blue-600' },
@@ -12,12 +14,10 @@ const navItems = [
     { to: '/expenses', icon: Receipt, label: 'Expenses', tint: 'from-amber-500 to-orange-600' },
     { to: '/settlements', icon: ArrowLeftRight, label: 'Settle Up', tint: 'from-fuchsia-500 to-pink-600' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics', tint: 'from-cyan-500 to-sky-600' },
-    { to: '/notifications', icon: Bell, label: 'Notifications', tint: 'from-rose-500 to-red-600', badge: true },
 ]
 
 const Sidebar = () => {
     const { user, logout } = useAuth()
-    const { unreadCount } = useNotifications()
     const { isDark, toggle } = useTheme()
 
     return (
@@ -49,7 +49,7 @@ const Sidebar = () => {
                 silently defeats `overflow-y-auto` here. */}
             <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
                 <p className="text-[10px] font-semibold text-subtle uppercase tracking-widest px-3 mb-2">Menu</p>
-                {navItems.map(({ to, icon: Icon, label, badge, tint }) => (
+                {navItems.map(({ to, icon: Icon, label, tint }) => (
                     <NavLink
                         key={to}
                         to={to}
@@ -79,11 +79,6 @@ const Sidebar = () => {
                                     <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted group-hover:text-default'}`} />
                                 </div>
                                 <span className="flex-1">{label}</span>
-                                {badge && unreadCount > 0 && (
-                                    <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                                        {unreadCount > 9 ? '9+' : unreadCount}
-                                    </span>
-                                )}
                             </>
                         )}
                     </NavLink>
