@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Crown, Receipt, Users } from 'lucide-react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { ArrowLeft, Plus, Crown, Receipt, Users, Edit2, Trash2, UserPlus, X, Search } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import toast from 'react-hot-toast'
 import { groupService } from '../services/groupService'
 import { expenseService } from '../services/expenseService'
 import { analyticsService } from '../services/analyticsService'
+import { friendService } from '../services/friendService'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatDate } from '../utils/formatDate'
 import { useAuth } from '../context/AuthContext'
+import { useDebounce } from '../hooks/useDebounce'
 import Avatar from '../components/common/Avatar'
 import Button from '../components/common/Button'
+import Input from '../components/common/Input'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
 import AddExpenseModal from '../components/expenses/AddExpenseModal'
 import SettleUpModal from '../components/settlements/SettleUpModal'
+import EditGroupModal from '../components/groups/EditGroupModal'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import EmptyState from '../components/common/EmptyState'
 import CurrencyDisplay from '../components/common/CurrencyDisplay'
 import { getCategoryStyle } from '../utils/categoryStyle'
@@ -21,6 +27,7 @@ const TABS = ['expenses', 'balances', 'stats', 'members']
 
 const GroupDetailPage = () => {
     const { id } = useParams()
+    const navigate = useNavigate()
     const { user } = useAuth()
     const [group, setGroup] = useState(null)
     const [expenses, setExpenses] = useState([])
@@ -34,6 +41,20 @@ const GroupDetailPage = () => {
     const [settleTarget, setSettleTarget] = useState(null)
     const [refreshKey, setRefreshKey] = useState(0)
     const refresh = () => setRefreshKey(k => k + 1)
+
+    // Edit / delete group
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+
+    // Add / remove members
+    const [showAddMembers, setShowAddMembers] = useState(false)
+    const [memberSearch, setMemberSearch] = useState('')
+    const [memberSearchResults, setMemberSearchResults] = useState([])
+    const [addingMemberId, setAddingMemberId] = useState(null)
+    const [removeTarget, setRemoveTarget] = useState(null)
+    const [removingMember, setRemovingMember] = useState(false)
+    const debouncedMemberSearch = useDebounce(memberSearch, 400)
 
     useEffect(() => {
         let cancelled = false
@@ -71,6 +92,63 @@ const GroupDetailPage = () => {
     const isAdmin = group?.members?.find(m => m.user?._id?.toString() === user._id?.toString())?.role === 'admin'
     const uid = user._id?.toString()
 
+    // Member search — the backend already supports POST /groups/:id/members,
+    // there was just no UI anywhere that called it.
+    useEffect(() => {
+        if (!showAddMembers || debouncedMemberSearch.length < 2) { setMemberSearchResults([]); return }
+        let cancelled = false
+        const existingIds = new Set((group?.members || []).map(m => m.user?._id?.toString()))
+        friendService.searchUsers(debouncedMemberSearch)
+            .then(res => {
+                if (cancelled) return
+                setMemberSearchResults(res.data.data.users.filter(u => !existingIds.has(u._id)))
+            })
+            .catch(() => { })
+        return () => { cancelled = true }
+    }, [debouncedMemberSearch, showAddMembers, group])
+
+    const handleAddMember = async (candidate) => {
+        setAddingMemberId(candidate._id)
+        try {
+            await groupService.addMembers(id, [candidate._id])
+            toast.success(`${candidate.name} added to the group`)
+            setMemberSearch('')
+            setMemberSearchResults([])
+            refresh()
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to add member')
+        } finally {
+            setAddingMemberId(null)
+        }
+    }
+
+    const handleRemoveMember = async () => {
+        if (!removeTarget) return
+        setRemovingMember(true)
+        try {
+            await groupService.removeMember(id, removeTarget._id)
+            toast.success(`${removeTarget.name} removed from the group`)
+            setRemoveTarget(null)
+            refresh()
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to remove member')
+        } finally {
+            setRemovingMember(false)
+        }
+    }
+
+    const handleDeleteGroup = async () => {
+        setDeleting(true)
+        try {
+            await groupService.deleteGroup(id)
+            toast.success('Group deleted')
+            navigate('/groups', { replace: true })
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete group')
+            setDeleting(false)
+        }
+    }
+
     if (loading) return <LoadingSkeleton count={4} />
     if (error) return (
         <div className="space-y-4">
@@ -89,29 +167,51 @@ const GroupDetailPage = () => {
                 <ArrowLeft className="w-4 h-4" /> Back to Groups
             </Link>
 
-            {/* Header */}
-            <div className="glass-card rounded-2xl p-5 flex items-center gap-4">
-                {group.groupImage
-                    ? <img src={group.groupImage} className="w-14 h-14 rounded-xl object-cover" alt={group.name} />
-                    : <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center text-2xl font-bold text-white">{group.name[0]}</div>
-                }
-                <div className="flex-1">
-                    <h1 className="text-xl font-bold text-default">{group.name}</h1>
-                    {group.description && <p className="text-sm text-muted">{group.description}</p>}
-                    <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-subtle flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" /> {group.members?.length} members
-                        </span>
-                        {stats && (
-                            <span className="text-xs text-subtle flex items-center gap-1">
-                                <Receipt className="w-3.5 h-3.5" /> {stats.totalExpenses} expenses · {formatCurrency(stats.totalAmount)}
-                            </span>
+            {/* Header — the image/name/actions row and the members/expenses summary
+                are two separate rows (not squeezed into one flex line) so the
+                summary text has the full card width to wrap in, rather than
+                breaking mid-phrase ("4" on one line, "members" on the next) on
+                narrow screens. */}
+            <div className="glass-card rounded-2xl p-5">
+                <div className="flex items-start gap-4">
+                    {group.groupImage
+                        ? <img src={group.groupImage} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" alt={group.name} />
+                        : <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center text-2xl font-bold text-white flex-shrink-0">{group.name[0]}</div>
+                    }
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-xl font-bold text-default truncate">{group.name}</h1>
+                        {group.description && <p className="text-sm text-muted truncate">{group.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {isAdmin && (
+                            <>
+                                <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface"
+                                    style={{ background: 'var(--surface-2)' }}>
+                                    <Edit2 className="w-4 h-4 text-muted" />
+                                </button>
+                                <button onClick={() => setShowDeleteConfirm(true)} aria-label="Delete group"
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                                    style={{ background: 'var(--negative-soft)' }}>
+                                    <Trash2 className="w-4 h-4" style={{ color: 'var(--negative)' }} />
+                                </button>
+                            </>
                         )}
+                        <Button onClick={() => setShowExpenseModal(true)} size="sm">
+                            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span>
+                        </Button>
                     </div>
                 </div>
-                <Button onClick={() => setShowExpenseModal(true)} size="sm">
-                    <Plus className="w-4 h-4" /> Add
-                </Button>
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                    <span className="text-xs text-subtle flex items-center gap-1 whitespace-nowrap">
+                        <Users className="w-3.5 h-3.5" /> {group.members?.length} members
+                    </span>
+                    {stats && (
+                        <span className="text-xs text-subtle flex items-center gap-1 whitespace-nowrap">
+                            <Receipt className="w-3.5 h-3.5" /> {stats.totalExpenses} expenses · {formatCurrency(stats.totalAmount)}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Tabs */}
@@ -205,9 +305,11 @@ const GroupDetailPage = () => {
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <span className="text-sm font-bold" style={{ color: 'var(--negative)' }}>{formatCurrency(item.amount)}</span>
-                                                {isMe && (
-                                                    <Button size="sm" variant="secondary" onClick={() => setSettleTarget({ user: toMember, amount: item.amount })}>
-                                                        Settle
+                                                {/* Only the person owed money (the receiver) can confirm it —
+                                                    not the debtor. */}
+                                                {toIsMe && (
+                                                    <Button size="sm" variant="secondary" onClick={() => setSettleTarget({ user: fromMember, amount: item.amount })}>
+                                                        Confirm
                                                     </Button>
                                                 )}
                                             </div>
@@ -314,30 +416,112 @@ const GroupDetailPage = () => {
 
             {/* ─── MEMBERS TAB ─── */}
             {tab === 'members' && (
-                <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
-                    {group.members?.map(m => (
-                        <div key={m.user?._id} className="flex items-center gap-3 px-4 py-3.5">
-                            <Avatar user={m.user} size="md" />
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold text-default">
-                                    {m.user?.name} {m.user?._id?.toString() === uid && <span className="text-subtle font-normal">(you)</span>}
-                                </p>
-                                <p className="text-xs text-muted">@{m.user?.username}</p>
-                            </div>
-                            {m.role === 'admin' && (
-                                <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full">
-                                    <Crown className="w-3 h-3" /> Admin
-                                </span>
+                <div className="space-y-4">
+                    {isAdmin && (
+                        <div className="glass-card rounded-2xl p-4">
+                            {!showAddMembers ? (
+                                <button onClick={() => setShowAddMembers(true)}
+                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold text-primary-600 dark:text-primary-400 transition-colors hover-surface">
+                                    <UserPlus className="w-4 h-4" /> Add Members
+                                </button>
+                            ) : (
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-bold text-default">Add Members</p>
+                                        <button onClick={() => { setShowAddMembers(false); setMemberSearch(''); setMemberSearchResults([]) }}
+                                            aria-label="Close" className="text-subtle hover:text-default transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <Input icon={Search} placeholder="Search by name or username..." value={memberSearch}
+                                        onChange={e => setMemberSearch(e.target.value)} autoFocus />
+                                    {memberSearchResults.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                            {memberSearchResults.slice(0, 5).map(cand => (
+                                                <div key={cand._id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover-surface">
+                                                    <Avatar user={cand} size="sm" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-default truncate">{cand.name}</p>
+                                                        <p className="text-xs text-subtle">@{cand.username}</p>
+                                                    </div>
+                                                    <Button size="sm" variant="secondary" loading={addingMemberId === cand._id}
+                                                        onClick={() => handleAddMember(cand)}>
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
+                                        <p className="text-xs text-subtle mt-2 px-1">No matching people found.</p>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    ))}
+                    )}
+
+                    <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
+                        {group.members?.map(m => {
+                            const isSelf = m.user?._id?.toString() === uid
+                            return (
+                                <div key={m.user?._id} className="flex items-center gap-3 px-4 py-3.5">
+                                    <Avatar user={m.user} size="md" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-default">
+                                            {m.user?.name} {isSelf && <span className="text-subtle font-normal">(you)</span>}
+                                        </p>
+                                        <p className="text-xs text-muted">@{m.user?.username}</p>
+                                    </div>
+                                    {m.role === 'admin' && (
+                                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full">
+                                            <Crown className="w-3 h-3" /> Admin
+                                        </span>
+                                    )}
+                                    {isAdmin && !isSelf && (
+                                        <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name}`}
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                                            style={{ background: 'var(--negative-soft)' }}>
+                                            <X className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
             )}
 
             <AddExpenseModal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} defaultGroupId={id} onSuccess={refresh} />
             {settleTarget && (
-                <SettleUpModal isOpen={!!settleTarget} onClose={() => setSettleTarget(null)} defaultTo={settleTarget.user} defaultAmount={settleTarget.amount} groupId={id} onSuccess={() => { setSettleTarget(null); refresh() }} />
+                <SettleUpModal isOpen={!!settleTarget} onClose={() => setSettleTarget(null)} defaultFrom={settleTarget.user} defaultAmount={settleTarget.amount} groupId={id} onSuccess={() => { setSettleTarget(null); refresh() }} />
             )}
+
+            <EditGroupModal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                group={group}
+                onSuccess={(updatedGroup) => { setShowEditModal(false); setGroup(updatedGroup) }}
+            />
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDeleteGroup}
+                title="Delete this group?"
+                message={`This permanently deletes "${group.name}" and all its expenses. This cannot be undone.`}
+                confirmLabel="Delete Group"
+                loading={deleting}
+            />
+
+            <ConfirmDialog
+                isOpen={!!removeTarget}
+                onClose={() => setRemoveTarget(null)}
+                onConfirm={handleRemoveMember}
+                title="Remove this member?"
+                message={`${removeTarget?.name} will lose access to this group. Their share of past expenses stays recorded.`}
+                confirmLabel="Remove"
+                loading={removingMember}
+            />
         </div>
     )
 }

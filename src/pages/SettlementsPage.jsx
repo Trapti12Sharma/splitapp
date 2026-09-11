@@ -47,12 +47,12 @@ const SettlementsPage = () => {
                 icon={ArrowLeftRight}
                 title="Settlements"
                 subtitle="Track payments between friends"
-                actions={<Button onClick={() => setShowModal(true)}><Plus className="w-4 h-4" /> Record</Button>}
+                actions={<Button onClick={() => setShowModal(true)}><Plus className="w-4 h-4" /> Confirm Payment</Button>}
             />
 
             {loading ? <LoadingSkeleton count={4} /> :
                 settlements.length === 0
-                    ? <EmptyState icon={ArrowLeftRight} title="No settlements yet" description="Record a payment when you settle up with someone." action={() => setShowModal(true)} actionLabel="Record Payment" />
+                    ? <EmptyState icon={ArrowLeftRight} title="No settlements yet" description="Confirm a payment once someone actually pays you." action={() => setShowModal(true)} actionLabel="Confirm Payment" />
                     : (
                         <div className="space-y-6">
                             {groups.map((group) => (

@@ -51,7 +51,17 @@ const App = () => (
         <ThemeProvider>
             <AuthProvider>
                 <Toaster
-                    position="top-right"
+                    // top-right used to sit exactly on top of the mobile header's
+                    // notification-bell and hamburger-menu buttons — react-hot-toast
+                    // renders at z-index 9999, well above the header's z-40, so for
+                    // the ~3s a toast was up it visually replaced those icons and
+                    // they couldn't be tapped. Centering it and dropping it below
+                    // the mobile header's height clears both the header and (since
+                    // it's centered, not right-aligned) the icons entirely; on
+                    // desktop there is no top header, so the extra offset just
+                    // leaves a little more breathing room above the toast.
+                    position="top-center"
+                    containerStyle={{ top: 72 }}
                     toastOptions={{
                         duration: 3000,
                         // Token-driven so toasts match the active theme instead of

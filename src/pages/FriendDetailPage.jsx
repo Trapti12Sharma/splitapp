@@ -86,8 +86,10 @@ const FriendDetailPage = () => {
                             <h1 className="text-xl font-extrabold text-default">{friend.name}</h1>
                             <p className="text-muted text-sm">@{friend.username} · {friend.email}</p>
                         </div>
-                        {balance && (balance.youOwe > 0 || balance.theyOwe > 0) && (
-                            <Button onClick={() => setSettleOpen(true)} className="flex-shrink-0">Settle Up</Button>
+                        {/* Only the person owed money can confirm a payment — if you're the one
+                            who owes, only your friend can confirm once you've actually paid them. */}
+                        {balance && balance.theyOwe > 0 && (
+                            <Button onClick={() => setSettleOpen(true)} className="flex-shrink-0">Confirm Payment</Button>
                         )}
                     </div>
                     {balance && (
@@ -174,8 +176,8 @@ const FriendDetailPage = () => {
             <SettleUpModal
                 isOpen={settleOpen}
                 onClose={() => setSettleOpen(false)}
-                defaultTo={friend}
-                defaultAmount={balance?.youOwe || 0}
+                defaultFrom={friend}
+                defaultAmount={balance?.theyOwe || 0}
                 onSuccess={handleSettled}
             />
         </div>
