@@ -11,6 +11,7 @@ import CurrencyDisplay from '../components/common/CurrencyDisplay'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
 import EmptyState from '../components/common/EmptyState'
 import PageHeader from '../components/common/PageHeader'
+import SettleUpModal from '../components/settlements/SettleUpModal'
 
 const FriendsPage = () => {
     const [tab, setTab] = useState('friends')
@@ -21,6 +22,7 @@ const FriendsPage = () => {
     const [loading, setLoading] = useState(true)
     const [searchLoading, setSearchLoading] = useState(false)
     const [actionLoading, setActionLoading] = useState({})
+    const [settleTarget, setSettleTarget] = useState(null)
     const debouncedSearch = useDebounce(searchQuery, 400)
 
     const fetchData = useCallback(async () => {
@@ -106,7 +108,19 @@ const FriendsPage = () => {
                                         <p className="font-bold text-default truncate">{friend.name}</p>
                                         <p className="text-xs text-subtle">@{friend.username}</p>
                                     </div>
-                                    <CurrencyDisplay amount={balance} size="sm" pill />
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        <CurrencyDisplay amount={balance} size="sm" pill />
+                                        {/* Only the person owed money can settle it — this only shows
+                                            when this friend owes YOU, not the other way round. */}
+                                        {balance > 0.01 && (
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSettleTarget({ user: friend, amount: balance }) }}
+                                                className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                                            >
+                                                Settle Up
+                                            </button>
+                                        )}
+                                    </div>
                                 </Link>
                             ))}
                         </div>
@@ -164,6 +178,16 @@ const FriendsPage = () => {
                         ))}
                     </div>
                 </div>
+            )}
+
+            {settleTarget && (
+                <SettleUpModal
+                    isOpen={!!settleTarget}
+                    onClose={() => setSettleTarget(null)}
+                    defaultFrom={settleTarget.user}
+                    defaultAmount={settleTarget.amount}
+                    onSuccess={() => { setSettleTarget(null); fetchData() }}
+                />
             )}
         </div>
     )

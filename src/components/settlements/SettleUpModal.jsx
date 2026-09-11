@@ -75,7 +75,7 @@ const SettleUpModal = ({ isOpen, onClose, defaultFrom, defaultAmount = 0, groupI
     }
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Confirm Payment" size="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Settle Up" size="sm">
             {payer ? (
                 <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl" style={{ background: 'var(--brand-soft)' }}>
                     <Avatar user={payer} size="md" />
@@ -136,7 +136,7 @@ const SettleUpModal = ({ isOpen, onClose, defaultFrom, defaultAmount = 0, groupI
                 <Input label="Note (optional)" placeholder="e.g. Dinner settlement" {...register('note')} />
                 <div className="flex gap-3 pt-1">
                     <Button variant="secondary" className="flex-1" type="button" onClick={onClose}>Cancel</Button>
-                    <Button className="flex-1" type="submit" loading={loading} disabled={!payer}>Confirm Received</Button>
+                    <Button className="flex-1" type="submit" loading={loading} disabled={!payer}>Settle Up</Button>
                 </div>
             </form>
         </Modal>

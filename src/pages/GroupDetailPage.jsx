@@ -309,7 +309,7 @@ const GroupDetailPage = () => {
                                                     not the debtor. */}
                                                 {toIsMe && (
                                                     <Button size="sm" variant="secondary" onClick={() => setSettleTarget({ user: fromMember, amount: item.amount })}>
-                                                        Confirm
+                                                        Settle Up
                                                     </Button>
                                                 )}
                                             </div>

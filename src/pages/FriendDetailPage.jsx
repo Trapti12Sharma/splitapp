@@ -89,7 +89,7 @@ const FriendDetailPage = () => {
                         {/* Only the person owed money can confirm a payment — if you're the one
                             who owes, only your friend can confirm once you've actually paid them. */}
                         {balance && balance.theyOwe > 0 && (
-                            <Button onClick={() => setSettleOpen(true)} className="flex-shrink-0">Confirm Payment</Button>
+                            <Button onClick={() => setSettleOpen(true)} className="flex-shrink-0">Settle Up</Button>
                         )}
                     </div>
                     {balance && (
