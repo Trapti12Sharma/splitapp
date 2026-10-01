@@ -54,6 +54,7 @@ const GroupDetailPage = () => {
     const [showAddMembers, setShowAddMembers] = useState(false)
     const [memberSearch, setMemberSearch] = useState('')
     const [memberSearchResults, setMemberSearchResults] = useState([])
+    const [friendsList, setFriendsList] = useState([])
     const [addingMemberId, setAddingMemberId] = useState(null)
     const [removeTarget, setRemoveTarget] = useState(null)
     const [removingMember, setRemovingMember] = useState(false)
@@ -97,20 +98,38 @@ const GroupDetailPage = () => {
     )?.role === 'admin'
     const uid = user?._id?.toString()
 
-    // Member search — shared by both the header quick-add and the Members tab panel
+    // Load the current user's friends once when the add panel first opens.
+    // Search filters this local list — no extra API call per keystroke, and
+    // only friends (not all users) are shown, which is what we want.
     useEffect(() => {
         const searchOpen = showQuickAdd || showAddMembers
-        if (!searchOpen || debouncedMemberSearch.length < 2) { setMemberSearchResults([]); return }
+        if (!searchOpen) return
+        if (friendsList.length > 0) return  // already loaded
         let cancelled = false
-        const existingIds = new Set((group?.members || []).map(m => m.user?._id?.toString()))
-        friendService.searchUsers(debouncedMemberSearch)
+        friendService.getFriends()
             .then(res => {
                 if (cancelled) return
-                setMemberSearchResults(res.data.data.users.filter(u => !existingIds.has(u._id)))
+                // getFriends returns [{ friendshipId, friend, balance }]
+                setFriendsList(res.data.data.friends.map(f => f.friend))
             })
             .catch(() => { })
         return () => { cancelled = true }
-    }, [debouncedMemberSearch, showQuickAdd, showAddMembers, group])
+    }, [showQuickAdd, showAddMembers])
+
+    // Filter the local friends list by the search query — exclude anyone
+    // already in the group.
+    useEffect(() => {
+        const searchOpen = showQuickAdd || showAddMembers
+        if (!searchOpen) { setMemberSearchResults([]); return }
+        const existingIds = new Set((group?.members || []).map(m => m.user?._id?.toString()))
+        const q = debouncedMemberSearch.trim().toLowerCase()
+        if (!q) { setMemberSearchResults([]); return }
+        const filtered = friendsList.filter(f =>
+            !existingIds.has(f._id?.toString()) &&
+            (f.name?.toLowerCase().includes(q) || f.username?.toLowerCase().includes(q))
+        )
+        setMemberSearchResults(filtered)
+    }, [debouncedMemberSearch, showQuickAdd, showAddMembers, friendsList, group])
 
     const handleAddMember = async (candidate) => {
         setAddingMemberId(candidate._id)
@@ -119,6 +138,7 @@ const GroupDetailPage = () => {
             toast.success(`${candidate.name} added to the group`)
             setMemberSearch('')
             setMemberSearchResults([])
+            setFriendsList([])
             setShowQuickAdd(false)
             setShowAddMembers(false)
             refresh()
@@ -134,6 +154,7 @@ const GroupDetailPage = () => {
         setShowAddMembers(false)
         setMemberSearch('')
         setMemberSearchResults([])
+        setFriendsList([])
     }
 
     const handleRemoveMember = async () => {
@@ -236,7 +257,7 @@ const GroupDetailPage = () => {
                         </div>
                         <Input
                             icon={Search}
-                            placeholder="Search by name or username..."
+                            placeholder="Search your friends..."
                             value={memberSearch}
                             onChange={e => setMemberSearch(e.target.value)}
                             autoFocus
@@ -495,7 +516,7 @@ const GroupDetailPage = () => {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <Input icon={Search} placeholder="Search by name or username..."
+                                <Input icon={Search} placeholder="Search your friends..."
                                     value={memberSearch} onChange={e => setMemberSearch(e.target.value)} autoFocus />
                                 {memberSearchResults.length > 0 && (
                                     <div className="mt-2 space-y-1">
