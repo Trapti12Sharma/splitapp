@@ -13,16 +13,16 @@ const ThemeContext = createContext(null)
 
 const STORAGE_KEY = 'theme'
 
+// Dark mode is the app's default — only an explicit 'light' choice turns it
+// off. This used to fall back to the OS's `prefers-color-scheme`, but the
+// product default is dark regardless of system theme.
 const readStoredTheme = () => {
-    if (typeof window === 'undefined') return false
+    if (typeof window === 'undefined') return true
     try {
-        const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored === 'dark') return true
-        if (stored === 'light') return false
-        return window.matchMedia('(prefers-color-scheme: dark)').matches
+        return localStorage.getItem(STORAGE_KEY) !== 'light'
     } catch {
-        // Private mode / blocked storage — fall back to the OS preference.
-        return false
+        // Private mode / blocked storage — fall back to the default.
+        return true
     }
 }
 
@@ -38,33 +38,13 @@ const applyTheme = (dark) => {
 
 export const ThemeProvider = ({ children }) => {
     const [isDark, setIsDark] = useState(readStoredTheme)
-    // `null` until the user picks explicitly — that's how we know to keep
-    // following the OS setting.
-    const [hasExplicitChoice, setHasExplicitChoice] = useState(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY)
-            return stored === 'dark' || stored === 'light'
-        } catch {
-            return false
-        }
-    })
 
     useEffect(() => {
         applyTheme(isDark)
     }, [isDark])
 
-    // Follow the OS while the user hasn't made an explicit choice.
-    useEffect(() => {
-        if (hasExplicitChoice) return
-        const mq = window.matchMedia('(prefers-color-scheme: dark)')
-        const onChange = (e) => setIsDark(e.matches)
-        mq.addEventListener('change', onChange)
-        return () => mq.removeEventListener('change', onChange)
-    }, [hasExplicitChoice])
-
     const setTheme = useCallback((dark) => {
         setIsDark(dark)
-        setHasExplicitChoice(true)
         try {
             localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light')
         } catch {

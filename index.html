@@ -15,7 +15,10 @@
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- SEO -->
     <meta name="description" content="Split expenses with friends and groups. Track who owes whom and settle up easily." />
@@ -26,9 +29,10 @@
     <script>
       (function () {
         try {
+          // Dark mode is the default for anyone who hasn't picked explicitly —
+          // only an explicit 'light' choice turns it off.
           var stored = localStorage.getItem('theme');
-          var dark = stored === 'dark' ||
-            (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var dark = stored !== 'light';
           if (dark) document.documentElement.classList.add('dark');
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
           var meta = document.querySelector('meta[name="theme-color"]');

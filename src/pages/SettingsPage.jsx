@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { LogOut, Lock, Moon, Sun } from 'lucide-react'
+import { LogOut, Lock, Moon, Sun, Download, Check, Share } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useInstallPrompt } from '../context/InstallPromptContext'
+import { isIos } from '../utils/platform'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
 
 const SettingsPage = () => {
     const { logout } = useAuth()
     const { isDark, toggle } = useTheme()
+    const { canInstall, installed, promptInstall } = useInstallPrompt()
     const [loading, setLoading] = useState(false)
     const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
     const newPassword = watch('newPassword')
+
+    const handleInstall = async () => {
+        const accepted = await promptInstall()
+        if (accepted) toast.success('SplitApp installed!')
+    }
 
     const onSubmit = async (data) => {
         setLoading(true)
@@ -52,6 +60,45 @@ const SettingsPage = () => {
                     </div>
                 </button>
             </div>
+
+            {/* Install app */}
+            {(canInstall || installed || isIos()) && (
+                <div className="glass-card rounded-3xl p-5">
+                    <h2 className="font-bold text-default mb-4">App</h2>
+                    {installed ? (
+                        <div className="w-full flex items-center gap-3 p-4 rounded-2xl border border-token">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/12 flex items-center justify-center">
+                                <Check className="w-5 h-5 text-emerald-500" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-default">App installed</p>
+                                <p className="text-xs text-subtle">You're running SplitApp as an app</p>
+                            </div>
+                        </div>
+                    ) : canInstall ? (
+                        <button onClick={handleInstall}
+                            className="w-full flex items-center gap-3 p-4 rounded-2xl border border-token hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+                                <Download className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-default">Install SplitApp</p>
+                                <p className="text-xs text-subtle">Add it to your device for quick, offline-friendly access</p>
+                            </div>
+                        </button>
+                    ) : (
+                        <div className="w-full flex items-center gap-3 p-4 rounded-2xl border border-token">
+                            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+                                <Share className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-default">Add to Home Screen</p>
+                                <p className="text-xs text-subtle">Tap Share, then "Add to Home Screen"</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Change password */}
             <div className="glass-card rounded-3xl p-5">
