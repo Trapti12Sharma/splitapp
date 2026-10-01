@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, UsersRound, Receipt, User } from 'lucide-react'
+import { LayoutDashboard, Users, UsersRound, Receipt, ArrowLeftRight } from 'lucide-react'
 
 const tabs = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { to: '/friends', icon: Users, label: 'Friends' },
     { to: '/groups', icon: UsersRound, label: 'Groups' },
     { to: '/expenses', icon: Receipt, label: 'Expenses' },
-    { to: '/profile', icon: User, label: 'Profile' },
+    { to: '/settlements', icon: ArrowLeftRight, label: 'Settle Up' },
 ]
 
 /**
