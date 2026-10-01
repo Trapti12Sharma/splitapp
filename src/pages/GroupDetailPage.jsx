@@ -89,8 +89,10 @@ const GroupDetailPage = () => {
         return () => { cancelled = true }
     }, [id, refreshKey])
 
-    const isAdmin = group?.members?.find(m => m.user?._id?.toString() === user._id?.toString())?.role === 'admin'
-    const uid = user._id?.toString()
+    const isAdmin = group?.members?.find(
+        m => (m.user?._id ?? m.user)?.toString() === user?._id?.toString()
+    )?.role === 'admin'
+    const uid = user?._id?.toString()
 
     // Member search — the backend already supports POST /groups/:id/members,
     // there was just no UI anywhere that called it.
@@ -183,19 +185,19 @@ const GroupDetailPage = () => {
                         {group.description && <p className="text-sm text-muted truncate">{group.description}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Edit — any member can edit group name/photo/description */}
+                        <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface"
+                            style={{ background: 'var(--surface-2)' }}>
+                            <Edit2 className="w-4 h-4 text-muted" />
+                        </button>
+                        {/* Delete — admin only */}
                         {isAdmin && (
-                            <>
-                                <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
-                                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface"
-                                    style={{ background: 'var(--surface-2)' }}>
-                                    <Edit2 className="w-4 h-4 text-muted" />
-                                </button>
-                                <button onClick={() => setShowDeleteConfirm(true)} aria-label="Delete group"
-                                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-                                    style={{ background: 'var(--negative-soft)' }}>
-                                    <Trash2 className="w-4 h-4" style={{ color: 'var(--negative)' }} />
-                                </button>
-                            </>
+                            <button onClick={() => setShowDeleteConfirm(true)} aria-label="Delete group"
+                                className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                                style={{ background: 'var(--negative-soft)' }}>
+                                <Trash2 className="w-4 h-4" style={{ color: 'var(--negative)' }} />
+                            </button>
                         )}
                         <Button onClick={() => setShowExpenseModal(true)} size="sm">
                             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span>
@@ -417,48 +419,47 @@ const GroupDetailPage = () => {
             {/* ─── MEMBERS TAB ─── */}
             {tab === 'members' && (
                 <div className="space-y-4">
-                    {isAdmin && (
-                        <div className="glass-card rounded-2xl p-4">
-                            {!showAddMembers ? (
-                                <button onClick={() => setShowAddMembers(true)}
-                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold text-primary-600 dark:text-primary-400 transition-colors hover-surface">
-                                    <UserPlus className="w-4 h-4" /> Add Members
-                                </button>
-                            ) : (
-                                <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-bold text-default">Add Members</p>
-                                        <button onClick={() => { setShowAddMembers(false); setMemberSearch(''); setMemberSearchResults([]) }}
-                                            aria-label="Close" className="text-subtle hover:text-default transition-colors">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <Input icon={Search} placeholder="Search by name or username..." value={memberSearch}
-                                        onChange={e => setMemberSearch(e.target.value)} autoFocus />
-                                    {memberSearchResults.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                            {memberSearchResults.slice(0, 5).map(cand => (
-                                                <div key={cand._id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover-surface">
-                                                    <Avatar user={cand} size="sm" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-default truncate">{cand.name}</p>
-                                                        <p className="text-xs text-subtle">@{cand.username}</p>
-                                                    </div>
-                                                    <Button size="sm" variant="secondary" loading={addingMemberId === cand._id}
-                                                        onClick={() => handleAddMember(cand)}>
-                                                        Add
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
-                                        <p className="text-xs text-subtle mt-2 px-1">No matching people found.</p>
-                                    )}
+                    {/* Add Members — any member can invite others */}
+                    <div className="glass-card rounded-2xl p-4">
+                        {!showAddMembers ? (
+                            <button onClick={() => setShowAddMembers(true)}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold text-primary-600 dark:text-primary-400 transition-colors hover-surface">
+                                <UserPlus className="w-4 h-4" /> Add Members
+                            </button>
+                        ) : (
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-bold text-default">Add Members</p>
+                                    <button onClick={() => { setShowAddMembers(false); setMemberSearch(''); setMemberSearchResults([]) }}
+                                        aria-label="Close" className="text-subtle hover:text-default transition-colors">
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                                <Input icon={Search} placeholder="Search by name or username..." value={memberSearch}
+                                    onChange={e => setMemberSearch(e.target.value)} autoFocus />
+                                {memberSearchResults.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                        {memberSearchResults.slice(0, 5).map(cand => (
+                                            <div key={cand._id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover-surface">
+                                                <Avatar user={cand} size="sm" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-default truncate">{cand.name}</p>
+                                                    <p className="text-xs text-subtle">@{cand.username}</p>
+                                                </div>
+                                                <Button size="sm" variant="secondary" loading={addingMemberId === cand._id}
+                                                    onClick={() => handleAddMember(cand)}>
+                                                    Add
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
+                                    <p className="text-xs text-subtle mt-2 px-1">No matching people found.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
                         {group.members?.map(m => {
@@ -477,6 +478,7 @@ const GroupDetailPage = () => {
                                             <Crown className="w-3 h-3" /> Admin
                                         </span>
                                     )}
+                                    {/* Remove — admin only, cannot remove self */}
                                     {isAdmin && !isSelf && (
                                         <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name} from group`}
                                             className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:opacity-80"

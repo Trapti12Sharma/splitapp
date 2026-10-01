@@ -19,10 +19,8 @@ const GROUP_GRADIENTS = [
     'from-indigo-500 to-blue-600',
 ]
 
-// Admin action buttons shown inline on the group card.
-// Using two visible icon buttons instead of a dropdown avoids the
-// overflow-hidden clipping issue that hid the dropdown on mobile.
-const GroupCardMenu = ({ onEdit, onDelete }) => (
+// Edit button shown to all members; delete only to admins.
+const GroupCardMenu = ({ onEdit, onDelete, isAdmin }) => (
     <div className="flex items-center gap-1.5" onClick={e => e.preventDefault()}>
         <button
             aria-label="Edit group"
@@ -32,14 +30,16 @@ const GroupCardMenu = ({ onEdit, onDelete }) => (
         >
             <Edit2 className="w-3.5 h-3.5 text-muted" />
         </button>
-        <button
-            aria-label="Delete group"
-            onClick={e => { e.stopPropagation(); onDelete() }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{ background: 'var(--negative-soft)' }}
-        >
-            <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
-        </button>
+        {isAdmin && (
+            <button
+                aria-label="Delete group"
+                onClick={e => { e.stopPropagation(); onDelete() }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                style={{ background: 'var(--negative-soft)' }}
+            >
+                <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
+            </button>
+        )}
     </div>
 )
 
@@ -61,10 +61,18 @@ const GroupsPage = () => {
             .finally(() => setLoading(false))
     }, [])
 
-    // Current user is admin if they appear in members with role 'admin'
+    // Any member can edit; only admins can delete
+    const isMember = (group) =>
+        group.members?.some(
+            m => (m.user?._id ?? m.user)?.toString() === user?._id?.toString()
+        )
+
+    // Current user is admin if they appear in members with role 'admin'.
+    // Normalise both sides to string — the populated member has .user._id (ObjectId)
+    // while user._id from AuthContext is already a string, but belt-and-suspenders.
     const isAdmin = (group) =>
         group.members?.some(
-            m => m.user?._id?.toString() === user?._id?.toString() && m.role === 'admin'
+            m => (m.user?._id ?? m.user)?.toString() === user?._id?.toString() && m.role === 'admin'
         )
 
     const handleEditSuccess = (updatedGroup) => {
@@ -127,6 +135,7 @@ const GroupsPage = () => {
                     {groups.map((g, index) => {
                         const gradient = GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]
                         const admin = isAdmin(g)
+                        const member = isMember(g)
                         return (
                             <div key={g._id} className="relative glass-card card-hover rounded-2xl group">
                                 {/* Clickable area navigates to detail */}
@@ -155,10 +164,10 @@ const GroupsPage = () => {
                                                     </p>
                                                 )}
                                             </div>
-                                            {/* Chevron for non-admins; spacer keeps layout consistent for admins */}
-                                            {!admin
+                                            {/* Chevron for non-members; spacer reserves room for action buttons */}
+                                            {!member
                                                 ? <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
-                                                : <div className="w-[72px] flex-shrink-0" />
+                                                : <div className={`flex-shrink-0 ${admin ? 'w-[72px]' : 'w-8'}`} />
                                             }
                                         </div>
 
@@ -197,10 +206,11 @@ const GroupsPage = () => {
                                     </div>
                                 </Link>
 
-                                {/* Admin-only edit/delete buttons — outside the Link so clicks don't navigate */}
-                                {admin && (
+                                {/* Action buttons — edit for all members, delete for admins only */}
+                                {member && (
                                     <div className="absolute top-4 right-4">
                                         <GroupCardMenu
+                                            isAdmin={admin}
                                             onEdit={() => setEditTarget(g)}
                                             onDelete={() => setDeleteTarget(g)}
                                         />
