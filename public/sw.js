@@ -14,7 +14,7 @@
 // stale v1 cache. See also the fetch handler: manifest.json and icon/favicon
 // files are no longer cache-first, specifically so this class of bug can't
 // wedge itself in again after a future icon change.
-const CACHE_NAME = 'splitapp-v2';
+const CACHE_NAME = 'splitapp-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
