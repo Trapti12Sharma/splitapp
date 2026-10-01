@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Download, Share, PlusSquare } from 'lucide-react'
+import { Download, Share, PlusSquare, MoreVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useInstallPrompt } from '../../context/InstallPromptContext'
-import { isIos } from '../../utils/platform'
+import { isIos, isAndroid } from '../../utils/platform'
 import Modal from './Modal'
 import Button from './Button'
 
@@ -32,40 +32,71 @@ const alreadySeen = () => {
  * the app root so it shows on the login/register screen too, before anyone
  * has an account.
  *
- * `beforeinstallprompt` fires asynchronously after load (sometimes a second
- * or two in), so this waits a moment before deciding whether to show
- * anything rather than judging `canInstall` the instant this mounts.
+ * Three possible modes, resolved once and then fixed for the rest of this
+ * popup's life (re-reading `canInstall` at render time instead would flip
+ * the UI out from under a still-open modal the moment the captured prompt
+ * gets consumed elsewhere):
+ *  - 'chrome': `beforeinstallprompt` fired — one-tap native install.
+ *  - 'ios': Safari/iOS never fires that event at all — Share-sheet steps.
+ *  - 'android-manual': Android Chrome, but the event hasn't fired after a
+ *    generous wait. Chrome gates it on its own site-engagement heuristic, so
+ *    a fresh visit with no taps yet can legitimately pass every technical
+ *    installability check and still not fire this on cue — the "Install
+ *    app" option sitting in Chrome's own menu already works regardless, so
+ *    this just points there instead of leaving the visitor with nothing.
  */
 const InstallAppModal = () => {
     const { canInstall, installed, promptInstall } = useInstallPrompt()
-    const [open, setOpen] = useState(false)
+    const [mode, setMode] = useState(null)
 
     useEffect(() => {
         if (installed || alreadySeen()) return
-        const timer = setTimeout(() => {
-            if (canInstall || isIos()) setOpen(true)
+
+        // `beforeinstallprompt` usually fires within a second or two of load;
+        // give it that long before committing to a mode.
+        const quick = setTimeout(() => {
+            if (canInstall) setMode('chrome')
+            else if (isIos()) setMode('ios')
         }, 1500)
-        return () => clearTimeout(timer)
+
+        // Android's engagement heuristic can take longer than that — wait
+        // further before falling back to manual instructions, so a slow
+        // `beforeinstallprompt` still gets to win and show the one-tap flow.
+        const slow = setTimeout(() => {
+            if (canInstall) setMode('chrome')
+            else if (isAndroid()) setMode('android-manual')
+        }, 4500)
+
+        return () => {
+            clearTimeout(quick)
+            clearTimeout(slow)
+        }
     }, [canInstall, installed])
 
     const close = () => {
         markSeen()
-        setOpen(false)
+        setMode(null)
     }
 
     const handleInstall = async () => {
         const accepted = await promptInstall()
         markSeen()
-        setOpen(false)
+        setMode(null)
         if (accepted) toast.success('SplitApp installed!')
     }
 
+    const titles = {
+        chrome: 'Install SplitApp',
+        ios: 'Add to Home Screen',
+        'android-manual': 'Install SplitApp',
+    }
+
     return (
-        <Modal isOpen={open} onClose={close} size="sm" title={isIos() ? 'Add to Home Screen' : 'Install SplitApp'}>
+        <Modal isOpen={!!mode} onClose={close} size="sm" title={titles[mode] || 'Install SplitApp'}>
             <div className="flex flex-col items-center text-center gap-4">
                 <img src="/icon-192.png" alt="SplitApp" className="w-16 h-16 rounded-2xl shadow-glow" />
 
-                {isIos() ? (
+                {mode === 'ios' && (
                     <>
                         <p className="text-sm text-muted">
                             Install SplitApp on your iPhone for quick, full-screen access — no App Store needed.
@@ -82,7 +113,28 @@ const InstallAppModal = () => {
                         </div>
                         <Button className="w-full" onClick={close}>Got it</Button>
                     </>
-                ) : (
+                )}
+
+                {mode === 'android-manual' && (
+                    <>
+                        <p className="text-sm text-muted">
+                            Add SplitApp to your home screen for quick, full-screen access.
+                        </p>
+                        <div className="w-full text-left text-sm text-default space-y-2 rounded-2xl border border-token p-4">
+                            <p className="flex items-center gap-2">
+                                <MoreVertical className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                                Tap the <strong>⋮ menu</strong> in Chrome's top-right corner
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Download className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                                Then choose <strong>Install app</strong> (or <strong>Add to Home screen</strong>)
+                            </p>
+                        </div>
+                        <Button className="w-full" onClick={close}>Got it</Button>
+                    </>
+                )}
+
+                {mode === 'chrome' && (
                     <>
                         <p className="text-sm text-muted">
                             Add SplitApp to your device for quick access, a full-screen experience, and offline-friendly loading.
