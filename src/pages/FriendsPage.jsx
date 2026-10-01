@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search, UserPlus, Users, Clock, Check, X, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { friendService } from '../services/friendService'
+import { formatCurrency } from '../utils/formatCurrency'
 import { useDebounce } from '../hooks/useDebounce'
 import Avatar from '../components/common/Avatar'
 import Button from '../components/common/Button'
@@ -99,31 +100,65 @@ const FriendsPage = () => {
                 loading ? <LoadingSkeleton count={4} /> :
                     friends.length === 0
                         ? <EmptyState icon={Users} title="No friends yet" description="Find people and send friend requests" action={() => setTab('find')} actionLabel="Find Friends" />
-                        : <div className="grid sm:grid-cols-2 gap-3">
-                            {friends.map(({ friendshipId, friend, balance }) => (
-                                <Link key={friendshipId} to={`/friends/${friend._id}`}
-                                    className="glass-card card-hover rounded-2xl p-4 flex items-center gap-3">
-                                    <Avatar user={friend} size="md" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-default truncate">{friend.name}</p>
-                                        <p className="text-xs text-subtle">@{friend.username}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1.5">
-                                        <CurrencyDisplay amount={balance} size="sm" pill />
-                                        {/* Only the person owed money can settle it — this only shows
-                                            when this friend owes YOU, not the other way round. */}
-                                        {balance > 0.01 && (
-                                            <button
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSettleTarget({ user: friend, amount: balance }) }}
-                                                className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
-                                            >
-                                                Settle Up
-                                            </button>
+                        : <>
+                            {/* Totals bar */}
+                            {(() => {
+                                const totalOwed = friends.reduce((s, { balance }) => balance < -0.01 ? s + Math.abs(balance) : s, 0)
+                                const totalOwedToYou = friends.reduce((s, { balance }) => balance > 0.01 ? s + balance : s, 0)
+                                if (totalOwed === 0 && totalOwedToYou === 0) return null
+                                return (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {totalOwedToYou > 0.01 && (
+                                            <div className="glass-card rounded-2xl p-4 flex items-center gap-3" style={{ borderLeft: '4px solid var(--positive)' }}>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[11px] font-bold text-subtle uppercase tracking-wider">Total owed to you</p>
+                                                    <p className="amount text-lg font-extrabold mt-0.5" style={{ color: 'var(--positive)' }}>
+                                                        +{formatCurrency(totalOwedToYou)}
+                                                    </p>
+                                                    <p className="text-[10px] text-subtle mt-0.5">across all groups & direct</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {totalOwed > 0.01 && (
+                                            <div className="glass-card rounded-2xl p-4 flex items-center gap-3" style={{ borderLeft: '4px solid var(--negative)' }}>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[11px] font-bold text-subtle uppercase tracking-wider">Total you owe</p>
+                                                    <p className="amount text-lg font-extrabold mt-0.5" style={{ color: 'var(--negative)' }}>
+                                                        -{formatCurrency(totalOwed)}
+                                                    </p>
+                                                    <p className="text-[10px] text-subtle mt-0.5">across all groups & direct</p>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
-                                </Link>
-                            ))}
-                        </div>
+                                )
+                            })()}
+                            <div className="grid sm:grid-cols-2 gap-3">
+                                {friends.map(({ friendshipId, friend, balance }) => (
+                                    <Link key={friendshipId} to={`/friends/${friend._id}`}
+                                        className="glass-card card-hover rounded-2xl p-4 flex items-center gap-3">
+                                        <Avatar user={friend} size="md" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-default truncate">{friend.name}</p>
+                                            <p className="text-xs text-subtle">@{friend.username}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            <CurrencyDisplay amount={balance} size="sm" pill />
+                                            {/* Only the person owed money can settle it — this only shows
+                                                when this friend owes YOU, not the other way round. */}
+                                            {balance > 0.01 && (
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSettleTarget({ user: friend, amount: balance }) }}
+                                                    className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                                                >
+                                                    Settle Up
+                                                </button>
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </>
             )}
 
             {/* Requests */}
