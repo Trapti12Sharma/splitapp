@@ -51,7 +51,6 @@ const GroupDetailPage = () => {
     const [showQuickAdd, setShowQuickAdd] = useState(false)
 
     // Add / remove members
-    const [showAddMembers, setShowAddMembers] = useState(false)
     const [memberSearch, setMemberSearch] = useState('')
     const [memberSearchResults, setMemberSearchResults] = useState([])
     const [friendsList, setFriendsList] = useState([])
@@ -102,25 +101,20 @@ const GroupDetailPage = () => {
     // Search filters this local list — no extra API call per keystroke, and
     // only friends (not all users) are shown, which is what we want.
     useEffect(() => {
-        const searchOpen = showQuickAdd || showAddMembers
-        if (!searchOpen) return
-        if (friendsList.length > 0) return  // already loaded
+        if (!showQuickAdd) return
+        if (friendsList.length > 0) return
         let cancelled = false
         friendService.getFriends()
             .then(res => {
                 if (cancelled) return
-                // getFriends returns [{ friendshipId, friend, balance }]
                 setFriendsList(res.data.data.friends.map(f => f.friend))
             })
             .catch(() => { })
         return () => { cancelled = true }
-    }, [showQuickAdd, showAddMembers])
+    }, [showQuickAdd])
 
-    // Filter the local friends list by the search query — exclude anyone
-    // already in the group.
     useEffect(() => {
-        const searchOpen = showQuickAdd || showAddMembers
-        if (!searchOpen) { setMemberSearchResults([]); return }
+        if (!showQuickAdd) { setMemberSearchResults([]); return }
         const existingIds = new Set((group?.members || []).map(m => m.user?._id?.toString()))
         const q = debouncedMemberSearch.trim().toLowerCase()
         if (!q) { setMemberSearchResults([]); return }
@@ -129,7 +123,7 @@ const GroupDetailPage = () => {
             (f.name?.toLowerCase().includes(q) || f.username?.toLowerCase().includes(q))
         )
         setMemberSearchResults(filtered)
-    }, [debouncedMemberSearch, showQuickAdd, showAddMembers, friendsList, group])
+    }, [debouncedMemberSearch, showQuickAdd, friendsList, group])
 
     const handleAddMember = async (candidate) => {
         setAddingMemberId(candidate._id)
@@ -140,7 +134,6 @@ const GroupDetailPage = () => {
             setMemberSearchResults([])
             setFriendsList([])
             setShowQuickAdd(false)
-            setShowAddMembers(false)
             refresh()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to add member')
@@ -151,7 +144,6 @@ const GroupDetailPage = () => {
 
     const closeAddPanel = () => {
         setShowQuickAdd(false)
-        setShowAddMembers(false)
         setMemberSearch('')
         setMemberSearchResults([])
         setFriendsList([])
@@ -500,48 +492,6 @@ const GroupDetailPage = () => {
             {/* ─── MEMBERS TAB ─── */}
             {tab === 'members' && (
                 <div className="space-y-4">
-                    {/* Add Members panel — any member can add others */}
-                    <div className="glass-card rounded-2xl p-4">
-                        {!showAddMembers ? (
-                            <button onClick={() => setShowAddMembers(true)}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold text-primary-600 dark:text-primary-400 transition-colors hover-surface">
-                                <UserPlus className="w-4 h-4" /> Add Members
-                            </button>
-                        ) : (
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm font-bold text-default">Add Members</p>
-                                    <button onClick={closeAddPanel} aria-label="Close"
-                                        className="text-subtle hover:text-default transition-colors">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <Input icon={Search} placeholder="Search your friends..."
-                                    value={memberSearch} onChange={e => setMemberSearch(e.target.value)} autoFocus />
-                                {memberSearchResults.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                        {memberSearchResults.slice(0, 5).map(cand => (
-                                            <div key={cand._id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover-surface">
-                                                <Avatar user={cand} size="sm" />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-default truncate">{cand.name}</p>
-                                                    <p className="text-xs text-subtle">@{cand.username}</p>
-                                                </div>
-                                                <Button size="sm" variant="secondary" loading={addingMemberId === cand._id}
-                                                    onClick={() => handleAddMember(cand)}>
-                                                    Add
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
-                                    <p className="text-xs text-subtle mt-2 px-1">No users found.</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
                     <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
                         {group.members?.map(m => {
                             const isSelf = m.user?._id?.toString() === uid
