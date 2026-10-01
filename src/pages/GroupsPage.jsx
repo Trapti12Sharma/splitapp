@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Users, UsersRound, ChevronRight, Sparkles } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus, Users, UsersRound, ChevronRight, Sparkles, MoreVertical, Edit2, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { groupService } from '../services/groupService'
-import { formatCurrency } from '../utils/formatCurrency'
+import { useAuth } from '../context/AuthContext'
 import Button from '../components/common/Button'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
 import PageHeader from '../components/common/PageHeader'
+import EditGroupModal from '../components/groups/EditGroupModal'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const GROUP_GRADIENTS = [
     'from-violet-500 to-purple-600',
@@ -16,9 +19,68 @@ const GROUP_GRADIENTS = [
     'from-indigo-500 to-blue-600',
 ]
 
+// Small dropdown menu shown on the group card when the user is an admin.
+// Rendered as a portal-free absolute div; clicking outside closes it.
+const GroupCardMenu = ({ onEdit, onDelete }) => {
+    const [open, setOpen] = useState(false)
+    const menuRef = useRef(null)
+
+    useEffect(() => {
+        if (!open) return
+        const handler = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [open])
+
+    return (
+        <div ref={menuRef} className="relative flex-shrink-0" onClick={e => e.preventDefault()}>
+            <button
+                aria-label="Group options"
+                onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover-surface"
+                style={{ background: 'var(--surface-2)' }}
+            >
+                <MoreVertical className="w-4 h-4 text-muted" />
+            </button>
+
+            {open && (
+                <div
+                    className="absolute right-0 top-9 z-30 min-w-[140px] rounded-xl shadow-lg border border-token py-1"
+                    style={{ background: 'var(--surface)' }}
+                >
+                    <button
+                        onClick={e => { e.stopPropagation(); setOpen(false); onEdit() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-default hover-surface transition-colors"
+                    >
+                        <Edit2 className="w-3.5 h-3.5 text-muted" />
+                        Edit Group
+                    </button>
+                    <button
+                        onClick={e => { e.stopPropagation(); setOpen(false); onDelete() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover-surface"
+                        style={{ color: 'var(--negative)' }}
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete Group
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+
 const GroupsPage = () => {
+    const navigate = useNavigate()
+    const { user } = useAuth()
     const [groups, setGroups] = useState([])
     const [loading, setLoading] = useState(true)
+
+    // Edit / delete state
+    const [editTarget, setEditTarget] = useState(null)       // group object to edit
+    const [deleteTarget, setDeleteTarget] = useState(null)   // group object to delete
+    const [deleting, setDeleting] = useState(false)
 
     useEffect(() => {
         groupService.getGroups()
@@ -26,6 +88,32 @@ const GroupsPage = () => {
             .catch(() => { })
             .finally(() => setLoading(false))
     }, [])
+
+    // Current user is admin if they appear in members with role 'admin'
+    const isAdmin = (group) =>
+        group.members?.some(
+            m => m.user?._id?.toString() === user?._id?.toString() && m.role === 'admin'
+        )
+
+    const handleEditSuccess = (updatedGroup) => {
+        setGroups(prev => prev.map(g => g._id === updatedGroup._id ? updatedGroup : g))
+        setEditTarget(null)
+    }
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return
+        setDeleting(true)
+        try {
+            await groupService.deleteGroup(deleteTarget._id)
+            toast.success(`"${deleteTarget.name}" deleted`)
+            setGroups(prev => prev.filter(g => g._id !== deleteTarget._id))
+            setDeleteTarget(null)
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete group')
+        } finally {
+            setDeleting(false)
+        }
+    }
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -66,70 +154,88 @@ const GroupsPage = () => {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {groups.map((g, index) => {
                         const gradient = GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]
+                        const admin = isAdmin(g)
                         return (
-                            <Link key={g._id} to={`/groups/${g._id}`}
-                                className="glass-card card-hover rounded-2xl overflow-hidden group cursor-pointer">
-                                {/* Color band top */}
-                                <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
+                            <div key={g._id} className="relative glass-card card-hover rounded-2xl overflow-hidden group">
+                                {/* Clickable area navigates to detail */}
+                                <Link to={`/groups/${g._id}`} className="block cursor-pointer">
+                                    {/* Color band top */}
+                                    <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
 
-                                <div className="p-5">
-                                    {/* Group identity */}
-                                    <div className="flex items-start gap-3 mb-4">
-                                        {g.groupImage ? (
-                                            <img src={g.groupImage} alt={g.name}
-                                                className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow-sm" />
-                                        ) : (
-                                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                                                <span className="text-xl font-extrabold text-white">{g.name[0]}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-default truncate text-base leading-tight">
-                                                {g.name}
-                                            </h3>
-                                            {g.description && (
-                                                <p className="text-xs text-muted mt-0.5 line-clamp-1">
-                                                    {g.description}
-                                                </p>
+                                    <div className="p-5">
+                                        {/* Group identity */}
+                                        <div className="flex items-start gap-3 mb-4">
+                                            {g.groupImage ? (
+                                                <img src={g.groupImage} alt={g.name}
+                                                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow-sm" />
+                                            ) : (
+                                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                                                    <span className="text-xl font-extrabold text-white">{g.name[0]}</span>
+                                                </div>
                                             )}
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
-                                    </div>
-
-                                    {/* Members avatars */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <div className="flex -space-x-2">
-                                                {g.members?.slice(0, 4).map((m, i) => {
-                                                    const initials = m.user?.name?.charAt(0)?.toUpperCase() || '?'
-                                                    const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500']
-                                                    return (
-                                                        <div key={i}
-                                                            className={`w-7 h-7 rounded-full ${colors[i % colors.length]} border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden`}>
-                                                            {m.user?.profileImage
-                                                                ? <img src={m.user.profileImage} alt="" className="w-full h-full object-cover" />
-                                                                : initials
-                                                            }
-                                                        </div>
-                                                    )
-                                                })}
-                                                {g.members?.length > 4 && (
-                                                    <div className="w-7 h-7 rounded-full bg-surface-2 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-muted dark:text-subtle text-[10px] font-bold">
-                                                        +{g.members.length - 4}
-                                                    </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-default truncate text-base leading-tight">
+                                                    {g.name}
+                                                </h3>
+                                                {g.description && (
+                                                    <p className="text-xs text-muted mt-0.5 line-clamp-1">
+                                                        {g.description}
+                                                    </p>
                                                 )}
                                             </div>
-                                            <span className="text-xs text-subtle ml-2">
-                                                {g.members?.length} member{g.members?.length !== 1 ? 's' : ''}
+                                            {/* Chevron only if not admin (admin gets the 3-dot menu instead) */}
+                                            {!admin && (
+                                                <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
+                                            )}
+                                            {/* Spacer so layout stays consistent when menu is shown */}
+                                            {admin && <div className="w-8 flex-shrink-0" />}
+                                        </div>
+
+                                        {/* Members avatars */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="flex -space-x-2">
+                                                    {g.members?.slice(0, 4).map((m, i) => {
+                                                        const initials = m.user?.name?.charAt(0)?.toUpperCase() || '?'
+                                                        const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500']
+                                                        return (
+                                                            <div key={i}
+                                                                className={`w-7 h-7 rounded-full ${colors[i % colors.length]} border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden`}>
+                                                                {m.user?.profileImage
+                                                                    ? <img src={m.user.profileImage} alt="" className="w-full h-full object-cover" />
+                                                                    : initials
+                                                                }
+                                                            </div>
+                                                        )
+                                                    })}
+                                                    {g.members?.length > 4 && (
+                                                        <div className="w-7 h-7 rounded-full bg-surface-2 dark:bg-gray-700 border-2 border-white dark:border-gray-800 flex items-center justify-center text-muted dark:text-subtle text-[10px] font-bold">
+                                                            +{g.members.length - 4}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-subtle ml-2">
+                                                    {g.members?.length} member{g.members?.length !== 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                            {/* Badge */}
+                                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r ${gradient} text-white`}>
+                                                Active
                                             </span>
                                         </div>
-                                        {/* Badge */}
-                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r ${gradient} text-white`}>
-                                            Active
-                                        </span>
                                     </div>
-                                </div>
-                            </Link>
+                                </Link>
+
+                                {/* Admin-only 3-dot menu — rendered outside the Link so clicks don't navigate */}
+                                {admin && (
+                                    <div className="absolute top-5 right-5">
+                                        <GroupCardMenu
+                                            onEdit={() => setEditTarget(g)}
+                                            onDelete={() => setDeleteTarget(g)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         )
                     })}
 
@@ -145,6 +251,25 @@ const GroupsPage = () => {
                     </Link>
                 </div>
             )}
+
+            {/* Edit modal */}
+            <EditGroupModal
+                isOpen={!!editTarget}
+                onClose={() => setEditTarget(null)}
+                group={editTarget}
+                onSuccess={handleEditSuccess}
+            />
+
+            {/* Delete confirmation */}
+            <ConfirmDialog
+                isOpen={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={handleDelete}
+                title="Delete this group?"
+                message={`This permanently deletes "${deleteTarget?.name}" and all its expenses. This cannot be undone.`}
+                confirmLabel="Delete Group"
+                loading={deleting}
+            />
         </div>
     )
 }
