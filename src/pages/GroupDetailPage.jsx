@@ -47,6 +47,9 @@ const GroupDetailPage = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleting, setDeleting] = useState(false)
 
+    // Add member — quick-add panel shown in the header card
+    const [showQuickAdd, setShowQuickAdd] = useState(false)
+
     // Add / remove members
     const [showAddMembers, setShowAddMembers] = useState(false)
     const [memberSearch, setMemberSearch] = useState('')
@@ -94,10 +97,10 @@ const GroupDetailPage = () => {
     )?.role === 'admin'
     const uid = user?._id?.toString()
 
-    // Member search — the backend already supports POST /groups/:id/members,
-    // there was just no UI anywhere that called it.
+    // Member search — shared by both the header quick-add and the Members tab panel
     useEffect(() => {
-        if (!showAddMembers || debouncedMemberSearch.length < 2) { setMemberSearchResults([]); return }
+        const searchOpen = showQuickAdd || showAddMembers
+        if (!searchOpen || debouncedMemberSearch.length < 2) { setMemberSearchResults([]); return }
         let cancelled = false
         const existingIds = new Set((group?.members || []).map(m => m.user?._id?.toString()))
         friendService.searchUsers(debouncedMemberSearch)
@@ -107,7 +110,7 @@ const GroupDetailPage = () => {
             })
             .catch(() => { })
         return () => { cancelled = true }
-    }, [debouncedMemberSearch, showAddMembers, group])
+    }, [debouncedMemberSearch, showQuickAdd, showAddMembers, group])
 
     const handleAddMember = async (candidate) => {
         setAddingMemberId(candidate._id)
@@ -116,12 +119,21 @@ const GroupDetailPage = () => {
             toast.success(`${candidate.name} added to the group`)
             setMemberSearch('')
             setMemberSearchResults([])
+            setShowQuickAdd(false)
+            setShowAddMembers(false)
             refresh()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to add member')
         } finally {
             setAddingMemberId(null)
         }
+    }
+
+    const closeAddPanel = () => {
+        setShowQuickAdd(false)
+        setShowAddMembers(false)
+        setMemberSearch('')
+        setMemberSearchResults([])
     }
 
     const handleRemoveMember = async () => {
@@ -185,11 +197,18 @@ const GroupDetailPage = () => {
                         {group.description && <p className="text-sm text-muted truncate">{group.description}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Edit — any member can edit group name/photo/description */}
+                        {/* Edit — any member */}
                         <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
                             className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface"
                             style={{ background: 'var(--surface-2)' }}>
                             <Edit2 className="w-4 h-4 text-muted" />
+                        </button>
+                        {/* Add member — any member, toggles inline search panel */}
+                        <button onClick={() => { setShowQuickAdd(v => !v); setMemberSearch(''); setMemberSearchResults([]) }}
+                            aria-label="Add member"
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${showQuickAdd ? 'gradient-primary' : 'hover-surface'}`}
+                            style={showQuickAdd ? undefined : { background: 'var(--surface-2)' }}>
+                            <UserPlus className={`w-4 h-4 ${showQuickAdd ? 'text-white' : 'text-muted'}`} />
                         </button>
                         {/* Delete — admin only */}
                         {isAdmin && (
@@ -204,6 +223,47 @@ const GroupDetailPage = () => {
                         </Button>
                     </div>
                 </div>
+
+                {/* Quick-add member search — expands inline under the header row */}
+                {showQuickAdd && (
+                    <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-bold text-default">Add a member</p>
+                            <button onClick={closeAddPanel} aria-label="Close"
+                                className="text-subtle hover:text-default transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <Input
+                            icon={Search}
+                            placeholder="Search by name or username..."
+                            value={memberSearch}
+                            onChange={e => setMemberSearch(e.target.value)}
+                            autoFocus
+                        />
+                        {memberSearchResults.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                                {memberSearchResults.slice(0, 5).map(cand => (
+                                    <div key={cand._id} className="flex items-center gap-3 px-2 py-2 rounded-xl hover-surface">
+                                        <Avatar user={cand} size="sm" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-default truncate">{cand.name}</p>
+                                            <p className="text-xs text-subtle">@{cand.username}</p>
+                                        </div>
+                                        <Button size="sm" loading={addingMemberId === cand._id}
+                                            onClick={() => handleAddMember(cand)}>
+                                            Add
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
+                            <p className="text-xs text-subtle mt-2 px-1">No users found.</p>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex items-center gap-3 mt-3 flex-wrap">
                     <span className="text-xs text-subtle flex items-center gap-1 whitespace-nowrap">
                         <Users className="w-3.5 h-3.5" /> {group.members?.length} members
@@ -419,7 +479,7 @@ const GroupDetailPage = () => {
             {/* ─── MEMBERS TAB ─── */}
             {tab === 'members' && (
                 <div className="space-y-4">
-                    {/* Add Members — any member can invite others */}
+                    {/* Add Members panel — any member can add others */}
                     <div className="glass-card rounded-2xl p-4">
                         {!showAddMembers ? (
                             <button onClick={() => setShowAddMembers(true)}
@@ -430,13 +490,13 @@ const GroupDetailPage = () => {
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <p className="text-sm font-bold text-default">Add Members</p>
-                                    <button onClick={() => { setShowAddMembers(false); setMemberSearch(''); setMemberSearchResults([]) }}
-                                        aria-label="Close" className="text-subtle hover:text-default transition-colors">
+                                    <button onClick={closeAddPanel} aria-label="Close"
+                                        className="text-subtle hover:text-default transition-colors">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <Input icon={Search} placeholder="Search by name or username..." value={memberSearch}
-                                    onChange={e => setMemberSearch(e.target.value)} autoFocus />
+                                <Input icon={Search} placeholder="Search by name or username..."
+                                    value={memberSearch} onChange={e => setMemberSearch(e.target.value)} autoFocus />
                                 {memberSearchResults.length > 0 && (
                                     <div className="mt-2 space-y-1">
                                         {memberSearchResults.slice(0, 5).map(cand => (
@@ -455,7 +515,7 @@ const GroupDetailPage = () => {
                                     </div>
                                 )}
                                 {memberSearch.length >= 2 && memberSearchResults.length === 0 && (
-                                    <p className="text-xs text-subtle mt-2 px-1">No matching people found.</p>
+                                    <p className="text-xs text-subtle mt-2 px-1">No users found.</p>
                                 )}
                             </div>
                         )}
