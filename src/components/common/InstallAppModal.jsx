@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Download, Share, PlusSquare, MoreVertical } from 'lucide-react'
+import { Download, Share, PlusSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useInstallPrompt } from '../../context/InstallPromptContext'
-import { isIos, isAndroid } from '../../utils/platform'
+import { isIos } from '../../utils/platform'
 import Modal from './Modal'
 import Button from './Button'
 
@@ -32,18 +32,21 @@ const alreadySeen = () => {
  * the app root so it shows on the login/register screen too, before anyone
  * has an account.
  *
- * Three possible modes, resolved once and then fixed for the rest of this
- * popup's life (re-reading `canInstall` at render time instead would flip
- * the UI out from under a still-open modal the moment the captured prompt
- * gets consumed elsewhere):
+ * Two possible modes:
  *  - 'chrome': `beforeinstallprompt` fired — one-tap native install.
  *  - 'ios': Safari/iOS never fires that event at all — Share-sheet steps.
- *  - 'android-manual': Android Chrome, but the event hasn't fired after a
- *    generous wait. Chrome gates it on its own site-engagement heuristic, so
- *    a fresh visit with no taps yet can legitimately pass every technical
- *    installability check and still not fire this on cue — the "Install
- *    app" option sitting in Chrome's own menu already works regardless, so
- *    this just points there instead of leaving the visitor with nothing.
+ *
+ * There used to be a third, timed-out "check Chrome's menu yourself" mode
+ * for Android when the event hadn't fired yet. That was wrong: Chrome's own
+ * "Install app" menu entry is gated by the exact same readiness signal as
+ * `beforeinstallprompt` (an undocumented site-engagement heuristic, separate
+ * from the manifest/service-worker validity `Page.getInstallabilityErrors`
+ * reports on) — pointing someone at the menu before that signal has fired
+ * sent them to an option that genuinely wasn't ready, and Chrome answered
+ * with "This app cannot be installed," which reads as a real failure. The
+ * fix is the same thing every working install prompt does (this app's own
+ * sibling project Tracksy included): only ever offer install once Chrome
+ * has actually said yes, and if it hasn't, show nothing rather than guess.
  */
 const InstallAppModal = () => {
     const { canInstall, installed, promptInstall } = useInstallPrompt()
@@ -51,26 +54,14 @@ const InstallAppModal = () => {
 
     useEffect(() => {
         if (installed || alreadySeen()) return
-
-        // `beforeinstallprompt` usually fires within a second or two of load;
-        // give it that long before committing to a mode.
-        const quick = setTimeout(() => {
-            if (canInstall) setMode('chrome')
-            else if (isIos()) setMode('ios')
-        }, 1500)
-
-        // Android's engagement heuristic can take longer than that — wait
-        // further before falling back to manual instructions, so a slow
-        // `beforeinstallprompt` still gets to win and show the one-tap flow.
-        const slow = setTimeout(() => {
-            if (canInstall) setMode('chrome')
-            else if (isAndroid()) setMode('android-manual')
-        }, 4500)
-
-        return () => {
-            clearTimeout(quick)
-            clearTimeout(slow)
-        }
+        // `beforeinstallprompt` fires asynchronously after load — this effect
+        // re-runs whenever `canInstall` changes, so however long Chrome takes
+        // to decide, the modal picks it up the moment it does. No arbitrary
+        // cutoff: if it never fires this visit, nothing shows, and the popup
+        // simply gets another chance next visit (`alreadySeen` is never set
+        // for a visit where nothing was shown).
+        if (canInstall) setMode('chrome')
+        else if (isIos()) setMode('ios')
     }, [canInstall, installed])
 
     const close = () => {
@@ -88,7 +79,6 @@ const InstallAppModal = () => {
     const titles = {
         chrome: 'Install SplitApp',
         ios: 'Add to Home Screen',
-        'android-manual': 'Install SplitApp',
     }
 
     return (
@@ -109,25 +99,6 @@ const InstallAppModal = () => {
                             <p className="flex items-center gap-2">
                                 <PlusSquare className="w-4 h-4 text-primary-500 flex-shrink-0" />
                                 Then choose <strong>Add to Home Screen</strong>
-                            </p>
-                        </div>
-                        <Button className="w-full" onClick={close}>Got it</Button>
-                    </>
-                )}
-
-                {mode === 'android-manual' && (
-                    <>
-                        <p className="text-sm text-muted">
-                            Add SplitApp to your home screen for quick, full-screen access.
-                        </p>
-                        <div className="w-full text-left text-sm text-default space-y-2 rounded-2xl border border-token p-4">
-                            <p className="flex items-center gap-2">
-                                <MoreVertical className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                                Tap the <strong>⋮ menu</strong> in Chrome's top-right corner
-                            </p>
-                            <p className="flex items-center gap-2">
-                                <Download className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                                Then choose <strong>Install app</strong> (or <strong>Add to Home screen</strong>)
                             </p>
                         </div>
                         <Button className="w-full" onClick={close}>Got it</Button>

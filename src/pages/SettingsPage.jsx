@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { LogOut, Lock, Moon, Sun, Download, Check, Share, MoreVertical } from 'lucide-react'
+import { LogOut, Lock, Moon, Sun, Download, Check, Share } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useInstallPrompt } from '../context/InstallPromptContext'
-import { isIos, isAndroid } from '../utils/platform'
+import { isIos } from '../utils/platform'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
 
@@ -61,8 +61,13 @@ const SettingsPage = () => {
                 </button>
             </div>
 
-            {/* Install app */}
-            {(canInstall || installed || isIos() || isAndroid()) && (
+            {/* Install app — only shown once Chrome/iOS has actually said this is
+                possible. Chrome's own "Install app" menu entry is gated by the
+                same undocumented readiness signal as `beforeinstallprompt`, so
+                pointing people at the menu before that fires sends them to an
+                option that genuinely isn't ready yet, and Chrome answers with
+                "This app cannot be installed" — which reads as a real failure. */}
+            {(canInstall || installed || isIos()) && (
                 <div className="glass-card rounded-3xl p-5">
                     <h2 className="font-bold text-default mb-4">App</h2>
                     {installed ? (
@@ -86,7 +91,7 @@ const SettingsPage = () => {
                                 <p className="text-xs text-subtle">Add it to your device for quick, offline-friendly access</p>
                             </div>
                         </button>
-                    ) : isIos() ? (
+                    ) : (
                         <div className="w-full flex items-center gap-3 p-4 rounded-2xl border border-token">
                             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
                                 <Share className="w-5 h-5 text-white" />
@@ -94,20 +99,6 @@ const SettingsPage = () => {
                             <div className="text-left">
                                 <p className="text-sm font-bold text-default">Add to Home Screen</p>
                                 <p className="text-xs text-subtle">Tap Share, then "Add to Home Screen"</p>
-                            </div>
-                        </div>
-                    ) : (
-                        // Android Chrome, but `beforeinstallprompt` hasn't fired this
-                        // visit — Chrome's own site-engagement heuristic can delay or
-                        // skip it even once every technical criterion passes. The
-                        // option is always in Chrome's menu regardless, so point there.
-                        <div className="w-full flex items-center gap-3 p-4 rounded-2xl border border-token">
-                            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
-                                <MoreVertical className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-sm font-bold text-default">Add to Home Screen</p>
-                                <p className="text-xs text-subtle">Tap Chrome's ⋮ menu, then "Install app"</p>
                             </div>
                         </div>
                     )}
