@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Users, UsersRound, ChevronRight, Sparkles, MoreVertical, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Users, UsersRound, ChevronRight, Sparkles, Edit2, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { groupService } from '../services/groupService'
 import { useAuth } from '../context/AuthContext'
@@ -19,57 +19,29 @@ const GROUP_GRADIENTS = [
     'from-indigo-500 to-blue-600',
 ]
 
-// Small dropdown menu shown on the group card when the user is an admin.
-// Rendered as a portal-free absolute div; clicking outside closes it.
-const GroupCardMenu = ({ onEdit, onDelete }) => {
-    const [open, setOpen] = useState(false)
-    const menuRef = useRef(null)
-
-    useEffect(() => {
-        if (!open) return
-        const handler = (e) => {
-            if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [open])
-
-    return (
-        <div ref={menuRef} className="relative flex-shrink-0" onClick={e => e.preventDefault()}>
-            <button
-                aria-label="Group options"
-                onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover-surface"
-                style={{ background: 'var(--surface-2)' }}
-            >
-                <MoreVertical className="w-4 h-4 text-muted" />
-            </button>
-
-            {open && (
-                <div
-                    className="absolute right-0 top-9 z-30 min-w-[140px] rounded-xl shadow-lg border border-token py-1"
-                    style={{ background: 'var(--surface)' }}
-                >
-                    <button
-                        onClick={e => { e.stopPropagation(); setOpen(false); onEdit() }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-default hover-surface transition-colors"
-                    >
-                        <Edit2 className="w-3.5 h-3.5 text-muted" />
-                        Edit Group
-                    </button>
-                    <button
-                        onClick={e => { e.stopPropagation(); setOpen(false); onDelete() }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover-surface"
-                        style={{ color: 'var(--negative)' }}
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Delete Group
-                    </button>
-                </div>
-            )}
-        </div>
-    )
-}
+// Admin action buttons shown inline on the group card.
+// Using two visible icon buttons instead of a dropdown avoids the
+// overflow-hidden clipping issue that hid the dropdown on mobile.
+const GroupCardMenu = ({ onEdit, onDelete }) => (
+    <div className="flex items-center gap-1.5" onClick={e => e.preventDefault()}>
+        <button
+            aria-label="Edit group"
+            onClick={e => { e.stopPropagation(); onEdit() }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover-surface"
+            style={{ background: 'var(--surface-2)' }}
+        >
+            <Edit2 className="w-3.5 h-3.5 text-muted" />
+        </button>
+        <button
+            aria-label="Delete group"
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+            style={{ background: 'var(--negative-soft)' }}
+        >
+            <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
+        </button>
+    </div>
+)
 
 const GroupsPage = () => {
     const navigate = useNavigate()
@@ -156,11 +128,11 @@ const GroupsPage = () => {
                         const gradient = GROUP_GRADIENTS[index % GROUP_GRADIENTS.length]
                         const admin = isAdmin(g)
                         return (
-                            <div key={g._id} className="relative glass-card card-hover rounded-2xl overflow-hidden group">
+                            <div key={g._id} className="relative glass-card card-hover rounded-2xl group">
                                 {/* Clickable area navigates to detail */}
                                 <Link to={`/groups/${g._id}`} className="block cursor-pointer">
                                     {/* Color band top */}
-                                    <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
+                                    <div className={`h-1.5 bg-gradient-to-r ${gradient} rounded-t-2xl`} />
 
                                     <div className="p-5">
                                         {/* Group identity */}
@@ -183,12 +155,11 @@ const GroupsPage = () => {
                                                     </p>
                                                 )}
                                             </div>
-                                            {/* Chevron only if not admin (admin gets the 3-dot menu instead) */}
-                                            {!admin && (
-                                                <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
-                                            )}
-                                            {/* Spacer so layout stays consistent when menu is shown */}
-                                            {admin && <div className="w-8 flex-shrink-0" />}
+                                            {/* Chevron for non-admins; spacer keeps layout consistent for admins */}
+                                            {!admin
+                                                ? <ChevronRight className="w-4 h-4 text-subtle dark:text-muted flex-shrink-0 mt-1 group-hover:text-primary-500 transition-colors" />
+                                                : <div className="w-[72px] flex-shrink-0" />
+                                            }
                                         </div>
 
                                         {/* Members avatars */}
@@ -226,9 +197,9 @@ const GroupsPage = () => {
                                     </div>
                                 </Link>
 
-                                {/* Admin-only 3-dot menu — rendered outside the Link so clicks don't navigate */}
+                                {/* Admin-only edit/delete buttons — outside the Link so clicks don't navigate */}
                                 {admin && (
-                                    <div className="absolute top-5 right-5">
+                                    <div className="absolute top-4 right-4">
                                         <GroupCardMenu
                                             onEdit={() => setEditTarget(g)}
                                             onDelete={() => setDeleteTarget(g)}
