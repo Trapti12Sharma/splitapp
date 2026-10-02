@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock } from 'lucide-react'
@@ -14,9 +14,47 @@ const LoginPage = () => {
     const location = useLocation()
     const [loading, setLoading] = useState(false)
     const { register, handleSubmit, formState: { errors } } = useForm()
+    const warmupToastId = useRef(null)
+
+    // If the backend is cold-starting (Render free tier spins down after ~15 min
+    // idle), the login request can hang for 30–60s with no feedback. We show an
+    // informational toast only when the first request actually takes a while, so
+    // warm users never see it.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            warmupToastId.current = toast.loading(
+                'Server is waking up — this takes ~30s on first visit…',
+                { duration: 60000, id: 'warmup' }
+            )
+        }, 4000) // only show if we haven't heard back in 4 seconds
+
+        const checkHealth = async () => {
+            if (!import.meta.env.VITE_API_URL) return
+            const url = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') + '/api/health'
+            try {
+                const res = await fetch(url, { signal: AbortSignal.timeout?.(45000) })
+                if (res.ok) {
+                    clearTimeout(timer)
+                    if (warmupToastId.current) {
+                        toast.dismiss('warmup')
+                        warmupToastId.current = null
+                    }
+                }
+            } catch {
+                // Server still cold or unreachable — toast stays until login succeeds
+            }
+        }
+        checkHealth()
+
+        return () => {
+            clearTimeout(timer)
+            toast.dismiss('warmup')
+        }
+    }, [])
 
     const onSubmit = async (data) => {
         setLoading(true)
+        toast.dismiss('warmup')
         try {
             await login(data.email, data.password)
             const from = location.state?.from?.pathname || '/dashboard'
