@@ -9,6 +9,7 @@ import Button from '../components/common/Button'
 import PageHeader from '../components/common/PageHeader'
 import EmptyState from '../components/common/EmptyState'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
+import Pagination from '../components/common/Pagination'
 import SettleUpModal from '../components/settlements/SettleUpModal'
 
 const SettlementsPage = () => {
@@ -16,18 +17,35 @@ const SettlementsPage = () => {
     const [settlements, setSettlements] = useState([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [page, setPage] = useState(1)
+    const [pagination, setPagination] = useState(null)
     const [refreshKey, setRefreshKey] = useState(0)
     const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
     useEffect(() => {
         let cancelled = false
         setLoading(true)
-        settlementService.getSettlements()
-            .then(res => { if (!cancelled) setSettlements(res.data.data.settlements) })
+        // This used to fetch with no params at all, defaulting to the backend's
+        // page=1/limit=20 forever — anyone with more than 20 settlements could
+        // never see the older ones, with no sign any were missing.
+        settlementService.getSettlements({ page, limit: 20 })
+            .then(res => {
+                if (cancelled) return
+                setSettlements(res.data.data.settlements)
+                setPagination(res.data.data.pagination)
+            })
             .catch(() => { })
             .finally(() => { if (!cancelled) setLoading(false) })
         return () => { cancelled = true }
-    }, [refreshKey])
+    }, [page, refreshKey])
+
+    // A new settlement (or a refresh after one) should jump back to the most
+    // recent page, not silently reload whatever page the user happened to be
+    // sitting on.
+    const refreshToFirstPage = useCallback(() => {
+        setPage(1)
+        refresh()
+    }, [refresh])
 
     const uid = user._id?.toString()
 
@@ -97,7 +115,9 @@ const SettlementsPage = () => {
                     )
             }
 
-            <SettleUpModal isOpen={showModal} onClose={() => setShowModal(false)} onSuccess={() => { setShowModal(false); refresh() }} />
+            <Pagination page={page} pages={pagination?.pages} onChange={setPage} />
+
+            <SettleUpModal isOpen={showModal} onClose={() => setShowModal(false)} onSuccess={() => { setShowModal(false); refreshToFirstPage() }} />
         </div>
     )
 }

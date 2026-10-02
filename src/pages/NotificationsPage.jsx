@@ -6,6 +6,7 @@ import Button from '../components/common/Button'
 import PageHeader from '../components/common/PageHeader'
 import EmptyState from '../components/common/EmptyState'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
+import Pagination from '../components/common/Pagination'
 
 const TYPE_CONFIG = {
     friend_request: { emoji: '👋', color: '#0ea5e9' },
@@ -22,14 +23,25 @@ const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([])
     const [loading, setLoading] = useState(true)
     const [markingAll, setMarkingAll] = useState(false)
+    const [page, setPage] = useState(1)
+    const [pagination, setPagination] = useState(null)
 
-    const fetch = () => {
-        notificationService.getNotifications({ limit: 50 })
-            .then(res => setNotifications(res.data.data.notifications))
+    // This used to always fetch `{ limit: 50 }` with no `page`, so anyone with
+    // more than 50 notifications could never reach the older ones — there was
+    // no control to get past page 1, and no sign more even existed.
+    useEffect(() => {
+        let cancelled = false
+        setLoading(true)
+        notificationService.getNotifications({ page, limit: 20 })
+            .then(res => {
+                if (cancelled) return
+                setNotifications(res.data.data.notifications)
+                setPagination(res.data.data.pagination)
+            })
             .catch(() => { })
-            .finally(() => setLoading(false))
-    }
-    useEffect(() => { fetch() }, [])
+            .finally(() => { if (!cancelled) setLoading(false) })
+        return () => { cancelled = true }
+    }, [page])
 
     const markAll = async () => {
         setMarkingAll(true)
@@ -92,6 +104,8 @@ const NotificationsPage = () => {
                         </div>
                     )
             }
+
+            <Pagination page={page} pages={pagination?.pages} onChange={setPage} />
         </div>
     )
 }

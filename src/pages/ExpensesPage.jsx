@@ -10,6 +10,7 @@ import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import PageHeader from '../components/common/PageHeader'
 import EmptyState from '../components/common/EmptyState'
+import Pagination from '../components/common/Pagination'
 import AddExpenseModal from '../components/expenses/AddExpenseModal'
 import { useDebounce } from '../hooks/useDebounce'
 
@@ -128,14 +129,7 @@ const ExpensesPage = () => {
                 </div>
             )}
 
-            {/* Pagination */}
-            {pagination && pagination.pages > 1 && (
-                <div className="flex items-center justify-center gap-3">
-                    <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-                    <span className="text-sm text-muted font-medium">{page} / {pagination.pages}</span>
-                    <Button variant="secondary" size="sm" disabled={page === pagination.pages} onClick={() => setPage(p => p + 1)}>Next</Button>
-                </div>
-            )}
+            <Pagination page={page} pages={pagination?.pages} onChange={setPage} />
 
             <AddExpenseModal isOpen={showModal} onClose={() => setShowModal(false)} onSuccess={() => setRefreshKey(k => k + 1)} />
         </div>

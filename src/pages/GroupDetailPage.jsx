@@ -15,6 +15,7 @@ import Avatar from '../components/common/Avatar'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import LoadingSkeleton from '../components/common/LoadingSkeleton'
+import Pagination from '../components/common/Pagination'
 import AddExpenseModal from '../components/expenses/AddExpenseModal'
 import SettleUpModal from '../components/settlements/SettleUpModal'
 import EditGroupModal from '../components/groups/EditGroupModal'
@@ -31,6 +32,9 @@ const GroupDetailPage = () => {
     const { user } = useAuth()
     const [group, setGroup] = useState(null)
     const [expenses, setExpenses] = useState([])
+    const [expensesLoading, setExpensesLoading] = useState(true)
+    const [expPage, setExpPage] = useState(1)
+    const [expPagination, setExpPagination] = useState(null)
     const [balances, setBalances] = useState([])
     const [whoOwes, setWhoOwes] = useState([])
     const [stats, setStats] = useState(null)
@@ -40,7 +44,11 @@ const GroupDetailPage = () => {
     const [showExpenseModal, setShowExpenseModal] = useState(false)
     const [settleTarget, setSettleTarget] = useState(null)
     const [refreshKey, setRefreshKey] = useState(0)
-    const refresh = () => setRefreshKey(k => k + 1)
+    // A change worth refreshing for (adding an expense, settling up, adding or
+    // removing a member) is also a reason to jump back to the newest page of
+    // expenses, rather than leaving the user stranded on whatever older page
+    // they happened to be viewing.
+    const refresh = () => { setExpPage(1); setRefreshKey(k => k + 1) }
 
     // Edit / delete group
     const [showEditModal, setShowEditModal] = useState(false)
@@ -64,13 +72,9 @@ const GroupDetailPage = () => {
         setError(null)
         const fetchData = async () => {
             try {
-                const [gRes, eRes] = await Promise.all([
-                    groupService.getGroup(id),
-                    expenseService.getGroupExpenses(id),
-                ])
+                const gRes = await groupService.getGroup(id)
                 if (cancelled) return
                 setGroup(gRes.data.data.group)
-                setExpenses(eRes.data.data.expenses)
 
                 // Non-critical — fetch independently
                 Promise.all([
@@ -91,6 +95,24 @@ const GroupDetailPage = () => {
         fetchData()
         return () => { cancelled = true }
     }, [id, refreshKey])
+
+    // Expenses paginate independently of the group/balances/stats load above —
+    // this used to be a single unpaginated fetch, so a group with more than 20
+    // expenses silently lost everything past the 20 most recent with no sign
+    // anything was missing.
+    useEffect(() => {
+        let cancelled = false
+        setExpensesLoading(true)
+        expenseService.getGroupExpenses(id, { page: expPage, limit: 20 })
+            .then(res => {
+                if (cancelled) return
+                setExpenses(res.data.data.expenses)
+                setExpPagination(res.data.data.pagination)
+            })
+            .catch(() => { })
+            .finally(() => { if (!cancelled) setExpensesLoading(false) })
+        return () => { cancelled = true }
+    }, [id, expPage, refreshKey])
 
     const isAdmin = group?.members?.find(
         m => (m.user?._id ?? m.user)?.toString() === user?._id?.toString()
@@ -194,11 +216,13 @@ const GroupDetailPage = () => {
                 <ArrowLeft className="w-4 h-4" /> Back to Groups
             </Link>
 
-            {/* Header — the image/name/actions row and the members/expenses summary
-                are two separate rows (not squeezed into one flex line) so the
-                summary text has the full card width to wrap in, rather than
-                breaking mid-phrase ("4" on one line, "members" on the next) on
-                narrow screens. */}
+            {/* Header — name/avatar, the action buttons, and the members/expenses
+                summary are three separate rows (not squeezed into one flex line).
+                The name row used to share its line with up to four action
+                buttons, which left it almost no room on a phone-width screen —
+                a normal group name would truncate down to a few characters.
+                Giving the name its own full-width row, and letting the actions
+                wrap onto their own row below, fixes that. */}
             <div className="glass-card rounded-2xl p-5">
                 <div className="flex items-start gap-4">
                     {group.groupImage
@@ -209,32 +233,33 @@ const GroupDetailPage = () => {
                         <h1 className="text-xl font-bold text-default truncate">{group.name}</h1>
                         {group.description && <p className="text-sm text-muted truncate">{group.description}</p>}
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Edit — any member */}
-                        <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
-                            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface"
-                            style={{ background: 'var(--surface-2)' }}>
-                            <Edit2 className="w-4 h-4 text-muted" />
+                </div>
+
+                <div className="flex items-center gap-2 mt-4 flex-wrap">
+                    {/* Edit — any member */}
+                    <button onClick={() => setShowEditModal(true)} aria-label="Edit group"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface flex-shrink-0"
+                        style={{ background: 'var(--surface-2)' }}>
+                        <Edit2 className="w-4 h-4 text-muted" />
+                    </button>
+                    {/* Add member — any member, toggles inline search panel */}
+                    <button onClick={() => { setShowQuickAdd(v => !v); setMemberSearch(''); setMemberSearchResults([]) }}
+                        aria-label="Add member"
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${showQuickAdd ? 'gradient-primary' : 'hover-surface'}`}
+                        style={showQuickAdd ? undefined : { background: 'var(--surface-2)' }}>
+                        <UserPlus className={`w-4 h-4 ${showQuickAdd ? 'text-white' : 'text-muted'}`} />
+                    </button>
+                    {/* Delete — admin only */}
+                    {isAdmin && (
+                        <button onClick={() => setShowDeleteConfirm(true)} aria-label="Delete group"
+                            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                            style={{ background: 'var(--negative-soft)' }}>
+                            <Trash2 className="w-4 h-4" style={{ color: 'var(--negative)' }} />
                         </button>
-                        {/* Add member — any member, toggles inline search panel */}
-                        <button onClick={() => { setShowQuickAdd(v => !v); setMemberSearch(''); setMemberSearchResults([]) }}
-                            aria-label="Add member"
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${showQuickAdd ? 'gradient-primary' : 'hover-surface'}`}
-                            style={showQuickAdd ? undefined : { background: 'var(--surface-2)' }}>
-                            <UserPlus className={`w-4 h-4 ${showQuickAdd ? 'text-white' : 'text-muted'}`} />
-                        </button>
-                        {/* Delete — admin only */}
-                        {isAdmin && (
-                            <button onClick={() => setShowDeleteConfirm(true)} aria-label="Delete group"
-                                className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-                                style={{ background: 'var(--negative-soft)' }}>
-                                <Trash2 className="w-4 h-4" style={{ color: 'var(--negative)' }} />
-                            </button>
-                        )}
-                        <Button onClick={() => setShowExpenseModal(true)} size="sm">
-                            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span>
-                        </Button>
-                    </div>
+                    )}
+                    <Button onClick={() => setShowExpenseModal(true)} size="sm" className="ml-auto flex-shrink-0">
+                        <Plus className="w-4 h-4" /> Add Expense
+                    </Button>
                 </div>
 
                 {/* Quick-add member search — expands inline under the header row */}
@@ -302,38 +327,43 @@ const GroupDetailPage = () => {
 
             {/* ─── EXPENSES TAB ─── */}
             {tab === 'expenses' && (
-                <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
-                    {expenses.length === 0
-                        ? <EmptyState icon={Receipt} title="No expenses yet" description="Add the first expense for this group." action={() => setShowExpenseModal(true)} actionLabel="Add Expense" />
-                        : expenses.map(exp => {
-                            const myShare = exp.splits?.find(s => (s.user?._id || s.user)?.toString() === uid)
-                            const isPayer = (exp.paidBy?._id || exp.paidBy)?.toString() === uid
-                            const cat = getCategoryStyle(exp.category)
-                            return (
-                                <Link key={exp._id} to={`/expenses/${exp._id}`}
-                                    className="flex items-center gap-3 pl-3 pr-4 py-3.5 hover-surface transition-colors border-l-4"
-                                    style={{ borderLeftColor: cat.color }}>
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: cat.soft }}>
-                                        {cat.emoji}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-default truncate">{exp.description}</p>
-                                        <p className="text-xs text-muted">
-                                            {isPayer ? 'You paid' : `${exp.paidBy?.name} paid`} · {formatDate(exp.date)}
-                                        </p>
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                        <p className="amount text-sm font-bold text-default">{formatCurrency(exp.amount, exp.currency)}</p>
-                                        {myShare && (
-                                            <p className="text-xs" style={{ color: isPayer && exp.splits?.length > 1 ? 'var(--positive)' : 'var(--negative)' }}>
-                                                {isPayer && exp.splits?.length > 1 ? `lent ${formatCurrency(exp.amount - myShare.amount)}` : `your share: ${formatCurrency(myShare.amount)}`}
-                                            </p>
-                                        )}
-                                    </div>
-                                </Link>
-                            )
-                        })
-                    }
+                <div className="space-y-4">
+                    {expensesLoading ? <LoadingSkeleton count={3} /> : (
+                        <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
+                            {expenses.length === 0
+                                ? <EmptyState icon={Receipt} title="No expenses yet" description="Add the first expense for this group." action={() => setShowExpenseModal(true)} actionLabel="Add Expense" />
+                                : expenses.map(exp => {
+                                    const myShare = exp.splits?.find(s => (s.user?._id || s.user)?.toString() === uid)
+                                    const isPayer = (exp.paidBy?._id || exp.paidBy)?.toString() === uid
+                                    const cat = getCategoryStyle(exp.category)
+                                    return (
+                                        <Link key={exp._id} to={`/expenses/${exp._id}`}
+                                            className="flex items-center gap-3 pl-3 pr-4 py-3.5 hover-surface transition-colors border-l-4"
+                                            style={{ borderLeftColor: cat.color }}>
+                                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: cat.soft }}>
+                                                {cat.emoji}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-default truncate">{exp.description}</p>
+                                                <p className="text-xs text-muted">
+                                                    {isPayer ? 'You paid' : `${exp.paidBy?.name} paid`} · {formatDate(exp.date)}
+                                                </p>
+                                            </div>
+                                            <div className="text-right flex-shrink-0">
+                                                <p className="amount text-sm font-bold text-default">{formatCurrency(exp.amount, exp.currency)}</p>
+                                                {myShare && (
+                                                    <p className="text-xs" style={{ color: isPayer && exp.splits?.length > 1 ? 'var(--positive)' : 'var(--negative)' }}>
+                                                        {isPayer && exp.splits?.length > 1 ? `lent ${formatCurrency(exp.amount - myShare.amount)}` : `your share: ${formatCurrency(myShare.amount)}`}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    )
+                                })
+                            }
+                        </div>
+                    )}
+                    <Pagination page={expPage} pages={expPagination?.pages} onChange={setExpPage} />
                 </div>
             )}
 
@@ -347,8 +377,8 @@ const GroupDetailPage = () => {
                             : balances.map(({ user: member, netBalance }) => (
                                 <div key={member._id} className="flex items-center gap-3 px-4 py-3.5">
                                     <Avatar user={member} size="sm" />
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-default">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-default truncate">
                                             {member._id?.toString() === uid ? 'You' : member.name}
                                         </p>
                                     </div>
@@ -498,14 +528,14 @@ const GroupDetailPage = () => {
                             return (
                                 <div key={m.user?._id} className="flex items-center gap-3 px-4 py-3.5">
                                     <Avatar user={m.user} size="md" />
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-default">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-default truncate">
                                             {m.user?.name} {isSelf && <span className="text-subtle font-normal">(you)</span>}
                                         </p>
-                                        <p className="text-xs text-muted">@{m.user?.username}</p>
+                                        <p className="text-xs text-muted truncate">@{m.user?.username}</p>
                                     </div>
                                     {m.role === 'admin' && (
-                                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full">
+                                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full flex-shrink-0">
                                             <Crown className="w-3 h-3" /> Admin
                                         </span>
                                     )}
