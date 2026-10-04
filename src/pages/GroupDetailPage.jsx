@@ -119,6 +119,13 @@ const GroupDetailPage = () => {
     )?.role === 'admin'
     const uid = user?._id?.toString()
 
+    // A member can't be removed while they still owe or are owed money in
+    // this group — removing them would hide that debt from everyone else.
+    const hasOpenBalance = (memberId) => {
+        const entry = balances.find(b => b.user?._id?.toString() === memberId?.toString())
+        return Math.abs(entry?.netBalance || 0) >= 0.01
+    }
+
     // Load the current user's friends once when the add panel first opens.
     // Search filters this local list — no extra API call per keystroke, and
     // only friends (not all users) are shown, which is what we want.
@@ -549,14 +556,24 @@ const GroupDetailPage = () => {
                                     )}
                                     {/* Remove — any member can remove others (not
                                         themselves); only an admin can remove an admin.
-                                        The server also refuses while they have an
-                                        unsettled balance. */}
+                                        Blocked until the member's group balance is
+                                        settled to zero (the server enforces this too). */}
                                     {!isSelf && (m.role !== 'admin' || isAdmin) && (
-                                        <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name} from group`}
-                                            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:opacity-80"
-                                            style={{ background: 'var(--negative-soft)', color: 'var(--negative)' }}>
-                                            Remove
-                                        </button>
+                                        hasOpenBalance(m.user?._id)
+                                            ? (
+                                                <span className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-subtle"
+                                                    style={{ background: 'var(--surface-2)' }}
+                                                    title="This member must settle up before they can be removed">
+                                                    Settle up first
+                                                </span>
+                                            )
+                                            : (
+                                                <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name} from group`}
+                                                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:opacity-80"
+                                                    style={{ background: 'var(--negative-soft)', color: 'var(--negative)' }}>
+                                                    Remove
+                                                </button>
+                                            )
                                     )}
                                 </div>
                             )
@@ -592,7 +609,7 @@ const GroupDetailPage = () => {
                 onClose={() => setRemoveTarget(null)}
                 onConfirm={handleRemoveMember}
                 title="Remove this member?"
-                message={`${removeTarget?.name} will lose access to this group. Their share of past expenses stays recorded. Members with an unsettled balance must settle up first.`}
+                message={`${removeTarget?.name} will lose access to this group. Their share of past expenses stays recorded.`}
                 confirmLabel="Remove"
                 loading={removingMember}
             />
