@@ -374,13 +374,14 @@ const GroupDetailPage = () => {
                     <div className="glass-card rounded-2xl divide-y divide-token dark:divide-gray-800">
                         {balances.length === 0
                             ? <p className="text-sm text-muted text-center py-8">No balances yet</p>
-                            : balances.map(({ user: member, netBalance }) => (
+                            : balances.map(({ user: member, netBalance, role }) => (
                                 <div key={member._id} className="flex items-center gap-3 px-4 py-3.5">
                                     <Avatar user={member} size="sm" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-default truncate">
                                             {member._id?.toString() === uid ? 'You' : member.name}
                                         </p>
+                                        {role === 'former' && <p className="text-xs text-subtle">Left the group</p>}
                                     </div>
                                     <CurrencyDisplay amount={netBalance} size="sm" pill />
                                 </div>
@@ -392,23 +393,30 @@ const GroupDetailPage = () => {
                     {whoOwes.length > 0 && (
                         <div className="glass-card rounded-2xl p-5">
                             <p className="text-sm font-bold text-default mb-3">Who owes whom</p>
-                            <div className="space-y-3">
+                            {/* On a phone the names, amount and Settle Up button
+                                don't fit on one line — the names used to be the
+                                part that got truncated away. Below `sm` the row
+                                stacks: names on top (free to wrap), amount and
+                                action underneath. */}
+                            <div className="divide-y divide-token dark:divide-gray-800">
                                 {whoOwes.map((item, i) => {
-                                    const fromMember = group.members?.find(m => m.user?._id?.toString() === item.from?.toString())?.user
-                                    const toMember = group.members?.find(m => m.user?._id?.toString() === item.to?.toString())?.user
+                                    // Look people up in the balances list, which also
+                                    // carries anyone who left the group with a balance.
+                                    const fromMember = balances.find(b => b.user?._id?.toString() === item.from?.toString())?.user
+                                    const toMember = balances.find(b => b.user?._id?.toString() === item.to?.toString())?.user
                                     const isMe = item.from?.toString() === uid
                                     const toIsMe = item.to?.toString() === uid
                                     return (
-                                        <div key={i} className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2 min-w-0">
+                                        <div key={i} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                            <div className="flex items-start gap-2 min-w-0">
                                                 <Avatar user={fromMember} size="xs" />
-                                                <span className="text-sm text-muted truncate">
-                                                    <span className="font-semibold">{isMe ? 'You' : fromMember?.name}</span>
-                                                    {' owes '}
-                                                    <span className="font-semibold">{toIsMe ? 'you' : toMember?.name}</span>
-                                                </span>
+                                                <p className="text-sm text-muted min-w-0 break-words">
+                                                    <span className="font-semibold text-default">{isMe ? 'You' : fromMember?.name || 'Former member'}</span>
+                                                    {isMe ? ' owe ' : ' owes '}
+                                                    <span className="font-semibold text-default">{toIsMe ? 'you' : toMember?.name || 'Former member'}</span>
+                                                </p>
                                             </div>
-                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center justify-between gap-2 pl-8 sm:pl-0 sm:justify-end sm:flex-shrink-0">
                                                 <span className="text-sm font-bold" style={{ color: 'var(--negative)' }}>{formatCurrency(item.amount)}</span>
                                                 {/* Only the person owed money (the receiver) can confirm it —
                                                     not the debtor. */}
@@ -465,9 +473,9 @@ const GroupDetailPage = () => {
                                                         {m.netBalance > 0 ? '+' : ''}{formatCurrency(m.netBalance)}
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-4 text-xs text-muted">
+                                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
                                                     <span>Paid: <span className="font-semibold" style={{ color: 'var(--positive)' }}>{formatCurrency(m.totalPaid)}</span></span>
-                                                    <span>Owed: <span className="font-semibold" style={{ color: 'var(--negative)' }}>{formatCurrency(m.totalOwed)}</span></span>
+                                                    <span>Share: <span className="font-semibold" style={{ color: 'var(--negative)' }}>{formatCurrency(m.totalOwed)}</span></span>
                                                     <span>{m.expenseCount} paid</span>
                                                 </div>
                                                 {/* Visual bar */}
@@ -539,8 +547,11 @@ const GroupDetailPage = () => {
                                             <Crown className="w-3 h-3" /> Admin
                                         </span>
                                     )}
-                                    {/* Remove — admin only, cannot remove self */}
-                                    {isAdmin && !isSelf && (
+                                    {/* Remove — any member can remove others (not
+                                        themselves); only an admin can remove an admin.
+                                        The server also refuses while they have an
+                                        unsettled balance. */}
+                                    {!isSelf && (m.role !== 'admin' || isAdmin) && (
                                         <button onClick={() => setRemoveTarget(m.user)} aria-label={`Remove ${m.user?.name} from group`}
                                             className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors hover:opacity-80"
                                             style={{ background: 'var(--negative-soft)', color: 'var(--negative)' }}>
@@ -581,7 +592,7 @@ const GroupDetailPage = () => {
                 onClose={() => setRemoveTarget(null)}
                 onConfirm={handleRemoveMember}
                 title="Remove this member?"
-                message={`${removeTarget?.name} will lose access to this group. Their share of past expenses stays recorded.`}
+                message={`${removeTarget?.name} will lose access to this group. Their share of past expenses stays recorded. Members with an unsettled balance must settle up first.`}
                 confirmLabel="Remove"
                 loading={removingMember}
             />

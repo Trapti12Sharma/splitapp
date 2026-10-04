@@ -11,7 +11,7 @@ import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import { friendService } from '../../services/friendService'
 import { useAuth } from '../../context/AuthContext'
-import { calculateSplits, validateSplits } from '../../utils/calculateSplits'
+import { calculateSplits, validateSplits, parseShares } from '../../utils/calculateSplits'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { CATEGORIES, getCategoryStyle } from '../../utils/categoryStyle'
 
@@ -95,7 +95,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
             const preview = calculateSplits(splitType, parseFloat(amount) || 0, splitData.map((s) => ({
                 ...s, amount: parseFloat(s.amount) || 0,
                 percentage: parseFloat(s.percentage) || 0,
-                shares: parseFloat(s.shares) || 1,
+                shares: parseShares(s.shares),
             })))
             setPreviewSplits(preview)
         } catch { setPreviewSplits([]) }
@@ -136,7 +136,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
         const validationError = validateSplits(splitType, parseFloat(data.amount), splitData.map((s) => ({
             amount: parseFloat(s.amount) || 0,
             percentage: parseFloat(s.percentage) || 0,
-            shares: parseFloat(s.shares) || 1,
+            shares: parseShares(s.shares),
         })))
         if (validationError && splitType !== 'equal') { toast.error(validationError); return }
 
@@ -157,7 +157,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                 userId: s.userId,
                 amount: parseFloat(s.amount) || 0,
                 percentage: parseFloat(s.percentage) || 0,
-                shares: parseFloat(s.shares) || 1,
+                shares: parseShares(s.shares),
             }))))
 
             if (selectedGroup) {
