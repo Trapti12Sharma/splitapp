@@ -115,7 +115,7 @@ const SettleUpModal = ({ isOpen, onClose, defaultFrom, defaultAmount = 0, groupI
 
             {payer && (
                 <p className="text-xs text-subtle mb-4 -mt-1">
-                    Only confirm this once you've actually received the money — it clears what {payer.name} owes you.
+                    Only confirm this once you&apos;ve actually received the money — it clears what {payer.name} owes you.
                 </p>
             )}
 

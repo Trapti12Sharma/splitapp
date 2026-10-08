@@ -94,7 +94,7 @@ const InstallAppModal = () => {
                         <div className="w-full text-left text-sm text-default space-y-2 rounded-2xl border border-token p-4">
                             <p className="flex items-center gap-2">
                                 <Share className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                                Tap the <strong>Share</strong> button in Safari's toolbar
+                                Tap the <strong>Share</strong> button in Safari&apos;s toolbar
                             </p>
                             <p className="flex items-center gap-2">
                                 <PlusSquare className="w-4 h-4 text-primary-500 flex-shrink-0" />

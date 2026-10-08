@@ -140,7 +140,7 @@ const GroupDetailPage = () => {
             })
             .catch(() => { })
         return () => { cancelled = true }
-    }, [showQuickAdd])
+    }, [showQuickAdd, friendsList.length])
 
     useEffect(() => {
         if (!showQuickAdd) { setMemberSearchResults([]); return }

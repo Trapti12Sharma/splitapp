@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     const logout = useCallback(async () => {
-        try { await authService.logout() } catch { }
+        try { await authService.logout() } catch { /* ignore */ }
         localStorage.removeItem('token')
         setUser(null)
     }, [])

@@ -176,7 +176,7 @@ const LoginPage = () => {
 
             <div className="mt-6 pt-6 border-t text-center" style={{ borderColor: 'var(--border)' }}>
                 <p className="text-sm text-subtle">
-                    Don't have an account?{' '}
+                    Don&apos;t have an account?{' '}
                     <Link
                         to="/register"
                         className="text-primary-500 hover:text-primary-400 font-semibold transition-colors"

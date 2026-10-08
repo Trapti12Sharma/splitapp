@@ -32,7 +32,7 @@ const ForgotPasswordPage = () => {
                     <CheckCircle className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-xl font-bold text-default">Check your email</h2>
-                <p className="text-sm text-muted">If that email is registered, we've sent a password reset link.</p>
+                <p className="text-sm text-muted">If that email is registered, we&apos;ve sent a password reset link.</p>
                 <Link to="/login" className="block text-sm text-primary-500 hover:text-primary-400 font-medium">Back to login</Link>
             </div>
         </AuthLayout>
@@ -44,7 +44,7 @@ const ForgotPasswordPage = () => {
                 <ArrowLeft className="w-4 h-4" /> Back to login
             </Link>
             <h1 className="text-2xl font-bold text-default mb-1">Forgot password?</h1>
-            <p className="text-sm text-muted mb-6">Enter your email and we'll send you a reset link.</p>
+            <p className="text-sm text-muted mb-6">Enter your email and we&apos;ll send you a reset link.</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Email" type="email" icon={Mail} placeholder="you@example.com" error={errors.email?.message}

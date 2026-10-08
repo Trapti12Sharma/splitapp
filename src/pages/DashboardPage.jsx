@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Wallet, Receipt, ArrowRight, Plus } from 'lucide-react'
 import { analyticsService } from '../services/analyticsService'
 import { expenseService } from '../services/expenseService'
-import { settlementService } from '../services/settlementService'
 import { groupService } from '../services/groupService'
 import { friendService } from '../services/friendService'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -44,7 +43,6 @@ const DashboardPage = () => {
     const { user } = useAuth()
     const [summary, setSummary] = useState(null)
     const [recentExpenses, setRecentExpenses] = useState([])
-    const [recentSettlements, setRecentSettlements] = useState([])
     const [groups, setGroups] = useState([])
     const [friends, setFriends] = useState([])
     const [loading, setLoading] = useState(true)
@@ -53,20 +51,18 @@ const DashboardPage = () => {
         let cancelled = false
         const fetchAll = async () => {
             try {
-                const [sumRes, expRes, setRes, grpRes, frdRes] = await Promise.all([
+                const [sumRes, expRes, grpRes, frdRes] = await Promise.all([
                     analyticsService.getSummary(),
                     expenseService.getExpenses({ limit: 5, sortBy: 'date', order: 'desc' }),
-                    settlementService.getSettlements({ limit: 5 }),
                     groupService.getGroups(),
                     friendService.getFriends(),
                 ])
                 if (cancelled) return
                 setSummary(sumRes.data.data)
                 setRecentExpenses(expRes.data.data.expenses)
-                setRecentSettlements(setRes.data.data.settlements)
                 setGroups(grpRes.data.data.groups.slice(0, 4))
                 setFriends(frdRes.data.data.friends.slice(0, 5))
-            } catch { } finally { if (!cancelled) setLoading(false) }
+            } catch { /* ignore */ } finally { if (!cancelled) setLoading(false) }
         }
         fetchAll()
         return () => { cancelled = true }
@@ -93,7 +89,7 @@ const DashboardPage = () => {
                     <h1 className="text-2xl font-extrabold text-default">
                         {greeting}, <span className="gradient-text">{user?.name?.split(' ')[0]}</span> 👋
                     </h1>
-                    <p className="text-sm text-muted mt-0.5">Here's your financial overview</p>
+                    <p className="text-sm text-muted mt-0.5">Here&apos;s your financial overview</p>
                 </div>
                 <Link to="/expenses">
                     <button className="gradient-primary text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-glow hover:shadow-glow-lg transition-shadow">

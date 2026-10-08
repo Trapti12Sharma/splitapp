@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Plus, Users, UsersRound, ChevronRight, Sparkles, Edit2, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { groupService } from '../services/groupService'
@@ -44,7 +44,6 @@ const GroupCardMenu = ({ onEdit, onDelete, isAdmin }) => (
 )
 
 const GroupsPage = () => {
-    const navigate = useNavigate()
     const { user } = useAuth()
     const [groups, setGroups] = useState([])
     const [loading, setLoading] = useState(true)

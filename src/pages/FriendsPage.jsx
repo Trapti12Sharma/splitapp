@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, Users, Clock, Check, X, UserCheck } from 'lucide-react'
+import { Search, UserPlus, Users, Clock, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { friendService } from '../services/friendService'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -31,7 +31,7 @@ const FriendsPage = () => {
             const [fRes, rRes] = await Promise.all([friendService.getFriends(), friendService.getFriendRequests()])
             setFriends(fRes.data.data.friends)
             setRequests(rRes.data.data.requests)
-        } catch { } finally { setLoading(false) }
+        } catch { /* ignore */ } finally { setLoading(false) }
     }, [])
 
     useEffect(() => { fetchData() }, [fetchData])
@@ -195,7 +195,7 @@ const FriendsPage = () => {
                     {searchLoading && <p className="text-sm text-subtle">Searching...</p>}
                     {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
                         <div className="glass-card rounded-2xl p-8 text-center">
-                            <p className="text-sm text-muted">No users found for "{searchQuery}"</p>
+                            <p className="text-sm text-muted">No users found for &ldquo;{searchQuery}&rdquo;</p>
                         </div>
                     )}
                     <div className="space-y-3">

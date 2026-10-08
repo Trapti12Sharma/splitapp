@@ -77,7 +77,7 @@ const SettingsPage = () => {
                             </div>
                             <div className="text-left">
                                 <p className="text-sm font-bold text-default">App installed</p>
-                                <p className="text-xs text-subtle">You're running SplitApp as an app</p>
+                                <p className="text-xs text-subtle">You&apos;re running SplitApp as an app</p>
                             </div>
                         </div>
                     ) : canInstall ? (
@@ -98,7 +98,7 @@ const SettingsPage = () => {
                             </div>
                             <div className="text-left">
                                 <p className="text-sm font-bold text-default">Add to Home Screen</p>
-                                <p className="text-xs text-subtle">Tap Share, then "Add to Home Screen"</p>
+                                <p className="text-xs text-subtle">Tap Share, then &ldquo;Add to Home Screen&rdquo;</p>
                             </div>
                         </div>
                     )}
@@ -132,7 +132,7 @@ const SettingsPage = () => {
                     </div>
                     <div className="text-left">
                         <p className="text-sm font-bold text-red-500">Sign Out</p>
-                        <p className="text-xs text-subtle">You'll need to log in again</p>
+                        <p className="text-xs text-subtle">You&apos;ll need to log in again</p>
                     </div>
                 </button>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit2, Trash2, Calendar, User, Users, Percent, Hash } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -29,13 +29,13 @@ const ExpenseDetailPage = () => {
     const [editOpen, setEditOpen] = useState(false)
     const [deleting, setDeleting] = useState(false)
 
-    const fetchExpense = () => {
+    const fetchExpense = useCallback(() => {
         expenseService.getExpense(id)
             .then(res => setExpense(res.data.data.expense))
             .catch(() => { })
             .finally(() => setLoading(false))
-    }
-    useEffect(() => { fetchExpense() }, [id])
+    }, [id])
+    useEffect(() => { fetchExpense() }, [fetchExpense])
 
     const handleDelete = async () => {
         setDeleting(true)
@@ -138,7 +138,7 @@ const ExpenseDetailPage = () => {
                     </div>
 
                     {expense.notes && (
-                        <p className="text-sm text-muted mt-4 px-1 italic">"{expense.notes}"</p>
+                        <p className="text-sm text-muted mt-4 px-1 italic">&ldquo;{expense.notes}&rdquo;</p>
                     )}
                 </div>
 

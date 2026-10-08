@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Receipt } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import api from '../services/api'
 import { friendService } from '../services/friendService'
 import { expenseService } from '../services/expenseService'
@@ -54,7 +54,7 @@ const FriendDetailPage = () => {
                 setSettlements(allSet.filter((s) =>
                     s.from?._id === id || s.to?._id === id
                 ))
-            } catch { }
+            } catch { /* ignore */ }
             finally { if (!cancelled) setLoading(false) }
         }
 

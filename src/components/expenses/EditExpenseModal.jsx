@@ -37,7 +37,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
     const [previewSplits, setPreviewSplits] = useState([])
     const fetchedRef = useRef(false)
 
-    const { register, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm()
+    const { register, handleSubmit, watch, formState: { errors }, reset } = useForm()
     const amount = watch('amount')
 
     // Populate form with existing expense data
@@ -73,7 +73,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
             percentage: s.percentage?.toString() || '',
             shares: s.shares?.toString() || '1',
         })) || [])
-    }, [isOpen, expense])
+    }, [isOpen, expense, reset, user._id])
 
     // Fetch groups + friends once
     useEffect(() => {
@@ -126,6 +126,8 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
             })))
             setPreviewSplits(preview)
         } catch { setPreviewSplits([]) }
+    // splitDataKey (serialised splitData) is the intended trigger; depending on the array itself would re-run on every identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [amount, splitType, splitDataKey])
 
     const toggleParticipant = (uid) => {
