@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { authService } from '../services/authService'
+import { disablePush } from '../utils/pushNotifications'
 
 const AuthContext = createContext(null)
 
@@ -43,6 +44,9 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     const logout = useCallback(async () => {
+        // Before the token is cleared — the unsubscribe call is authenticated.
+        // Otherwise this phone would keep getting the old account's notifications.
+        await disablePush()
         try { await authService.logout() } catch { /* ignore */ }
         localStorage.removeItem('token')
         setUser(null)

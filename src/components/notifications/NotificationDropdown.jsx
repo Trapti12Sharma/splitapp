@@ -6,7 +6,7 @@ import { formatRelativeDate } from '../../utils/formatDate'
 
 const TYPE_EMOJI = {
     friend_request: '👋', friend_accepted: '🤝', group_added: '👥',
-    expense_added: '💸', expense_edited: '✏️', expense_deleted: '🗑️', settlement_received: '✅',
+    expense_added: '💸', expense_edited: '✏️', expense_deleted: '🗑️', settlement_received: '✅', payment_reminder: '⏰',
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { notificationService } from '../services/notificationService'
 import { useAuth } from './AuthContext'
+import { syncPushSubscription } from '../utils/pushNotifications'
 
 const NotificationContext = createContext(null)
 
@@ -32,13 +33,22 @@ export const NotificationProvider = ({ children }) => {
         }
 
         fetchNotifications()
+        syncPushSubscription()
 
         // Poll every 60 seconds (was 30 — no need to be aggressive)
         intervalRef.current = setInterval(fetchNotifications, 60000)
 
+        // The service worker posts this when a push arrives, so an open app
+        // updates its bell immediately rather than on the next poll.
+        const onSwMessage = (event) => {
+            if (event.data?.type === 'push-received') fetchNotifications()
+        }
+        navigator.serviceWorker?.addEventListener('message', onSwMessage)
+
         return () => {
             clearInterval(intervalRef.current)
             intervalRef.current = null
+            navigator.serviceWorker?.removeEventListener('message', onSwMessage)
         }
     }, [userId]) // ← stable primitive, not an object
 

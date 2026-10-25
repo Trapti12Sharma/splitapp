@@ -45,6 +45,49 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Push - show a system notification (the phone's notification shade) for a
+// message sent by the backend's pushService. Payload: { title, body, url }.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'SplitApp';
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, {
+        body: data.body || '',
+        icon: '/icon-192.png',
+        data: { url: data.url || '/notifications' },
+      }),
+      // Let any open tab refresh its bell/unread count straight away instead
+      // of waiting for the next 60s poll.
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) =>
+        clients.forEach((client) => client.postMessage({ type: 'push-received' }))
+      ),
+    ])
+  );
+});
+
+// Notification tap - focus an open SplitApp window on the right page, or open one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/notifications', self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const client = clients.find((c) => new URL(c.url).origin === self.location.origin);
+      if (client) {
+        return client.focus().then((c) => (c && 'navigate' in c ? c.navigate(target) : c));
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});
+
 // Fetch - network first for API, cache first for static
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);

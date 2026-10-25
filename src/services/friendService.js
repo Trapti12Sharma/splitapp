@@ -8,5 +8,6 @@ export const friendService = {
   rejectRequest: (id) => api.put(`/friends/${id}/reject`),
   removeFriend: (id) => api.delete(`/friends/${id}`),
   getFriendBalance: (id) => api.get(`/friends/${id}/balance`),
+  sendPaymentReminder: (id) => api.post(`/friends/${id}/remind`),
   searchUsers: (q) => api.get('/users/search', { params: { q } }),
 }

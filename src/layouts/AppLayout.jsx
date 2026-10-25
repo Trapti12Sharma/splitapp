@@ -3,6 +3,7 @@ import DesktopHeader from '../components/layout/DesktopHeader'
 import TopNavbar from '../components/layout/TopNavbar'
 import BottomNavbar from '../components/layout/BottomNavbar'
 import { NotificationProvider } from '../context/NotificationContext'
+import PushPrompt from '../components/notifications/PushPrompt'
 
 /**
  * The layout no longer reads the theme itself. It used to apply `dark` to this
@@ -19,6 +20,7 @@ const AppLayout = ({ children }) => (
             <TopNavbar />
             <main className="lg:ml-[240px] pb-24 lg:pb-8 pt-0">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+                    <PushPrompt />
                     {children}
                 </div>
             </main>

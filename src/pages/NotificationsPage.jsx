@@ -16,6 +16,7 @@ const TYPE_CONFIG = {
     expense_edited: { emoji: '✏️', color: '#6366f1' },
     expense_deleted: { emoji: '🗑️', color: '#f43f5e' },
     settlement_received: { emoji: '✅', color: '#14b8a6' },
+    payment_reminder: { emoji: '⏰', color: '#f59e0b' },
 }
 const FALLBACK_CONFIG = { emoji: '🔔', color: '#9ca3af' }
 

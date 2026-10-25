@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { LogOut, Lock, Moon, Sun, Download, Check, Share } from 'lucide-react'
+import { LogOut, Lock, Moon, Sun, Download, Check, Share, Bell } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useInstallPrompt } from '../context/InstallPromptContext'
 import { isIos } from '../utils/platform'
+import {
+    isPushSupported, needsInstallForPush, getPushPermission, isPushEnabled, enablePush, disablePush,
+} from '../utils/pushNotifications'
 import Input from '../components/common/Input'
 import Button from '../components/common/Button'
 
@@ -17,6 +20,44 @@ const SettingsPage = () => {
     const [loading, setLoading] = useState(false)
     const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
     const newPassword = watch('newPassword')
+    const [pushOn, setPushOn] = useState(false)
+    const [pushPermission, setPushPermission] = useState(getPushPermission)
+    const [pushLoading, setPushLoading] = useState(false)
+
+    useEffect(() => {
+        isPushEnabled().then(setPushOn).catch(() => {})
+    }, [])
+
+    const togglePush = async () => {
+        setPushLoading(true)
+        try {
+            if (pushOn) {
+                await disablePush()
+                setPushOn(false)
+                toast.success('Notifications turned off')
+            } else {
+                const permission = await enablePush()
+                setPushPermission(permission)
+                if (permission === 'granted') {
+                    setPushOn(true)
+                    toast.success('Notifications turned on')
+                } else if (permission === 'denied') {
+                    toast.error('Notifications are blocked — allow them in your browser settings')
+                }
+            }
+        } catch {
+            toast.error('Could not update notifications')
+        } finally { setPushLoading(false) }
+    }
+
+    const pushSubtitle = needsInstallForPush()
+        ? 'Add SplitApp to your Home Screen first, then turn this on'
+        : !isPushSupported()
+            ? 'Not supported in this browser'
+            : pushPermission === 'denied'
+                ? 'Blocked — allow notifications for this site in browser settings'
+                : pushOn ? 'New expenses and payment reminders' : 'Currently off'
+    const pushDisabled = pushLoading || !isPushSupported() || (pushPermission === 'denied' && !pushOn)
 
     const handleInstall = async () => {
         const accepted = await promptInstall()
@@ -57,6 +98,26 @@ const SettingsPage = () => {
                     </div>
                     <div className={`w-12 h-6 rounded-full transition-colors ${isDark ? 'bg-primary-600' : 'bg-gray-200'} relative`}>
                         <div className={`w-5 h-5 rounded-full bg-surface shadow absolute top-0.5 transition-all ${isDark ? 'left-6' : 'left-0.5'}`} />
+                    </div>
+                </button>
+            </div>
+
+            {/* Phone notifications (Web Push) */}
+            <div className="glass-card rounded-3xl p-5">
+                <h2 className="font-bold text-default mb-4">Notifications</h2>
+                <button onClick={togglePush} disabled={pushDisabled}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-token hover:border-primary-300 dark:hover:border-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+                            <Bell className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-bold text-default">Push Notifications</p>
+                            <p className="text-xs text-subtle">{pushSubtitle}</p>
+                        </div>
+                    </div>
+                    <div className={`w-12 h-6 rounded-full transition-colors ${pushOn ? 'bg-primary-600' : 'bg-gray-200'} relative flex-shrink-0`}>
+                        <div className={`w-5 h-5 rounded-full bg-surface shadow absolute top-0.5 transition-all ${pushOn ? 'left-6' : 'left-0.5'}`} />
                     </div>
                 </button>
             </div>

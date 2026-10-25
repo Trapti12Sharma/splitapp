@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BellRing } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../services/api'
 import { friendService } from '../services/friendService'
 import { expenseService } from '../services/expenseService'
@@ -25,6 +26,7 @@ const FriendDetailPage = () => {
     const [loading, setLoading] = useState(true)
     const [settleOpen, setSettleOpen] = useState(false)
     const [refreshKey, setRefreshKey] = useState(0)
+    const [reminding, setReminding] = useState(false)
 
     useEffect(() => {
         if (!id || !user?._id) return
@@ -67,6 +69,16 @@ const FriendDetailPage = () => {
         setRefreshKey(k => k + 1)
     }
 
+    const handleRemind = async () => {
+        setReminding(true)
+        try {
+            const res = await friendService.sendPaymentReminder(id)
+            toast.success(res.data.message)
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not send reminder')
+        } finally { setReminding(false) }
+    }
+
     if (loading) return <div className="space-y-4"><LoadingSkeleton count={3} /></div>
     if (!friend) return <p className="text-center text-muted py-16">User not found</p>
 
@@ -89,7 +101,12 @@ const FriendDetailPage = () => {
                         {/* Only the person owed money can confirm a payment — if you're the one
                             who owes, only your friend can confirm once you've actually paid them. */}
                         {balance && balance.theyOwe > 0 && (
-                            <Button onClick={() => setSettleOpen(true)} className="flex-shrink-0">Settle Up</Button>
+                            <div className="flex gap-2 flex-shrink-0">
+                                <Button variant="secondary" loading={reminding} onClick={handleRemind}>
+                                    <BellRing className="w-4 h-4" /> Remind
+                                </Button>
+                                <Button onClick={() => setSettleOpen(true)}>Settle Up</Button>
+                            </div>
                         )}
                     </div>
                     {balance && (
