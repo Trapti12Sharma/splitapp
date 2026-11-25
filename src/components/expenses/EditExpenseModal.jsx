@@ -13,6 +13,7 @@ import { friendService } from '../../services/friendService'
 import { useAuth } from '../../context/AuthContext'
 import { calculateSplits, validateSplits, parseShares } from '../../utils/calculateSplits'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { toDateTimeLocalValue, dateTimeLocalToIso, getExpenseDateTime } from '../../utils/formatDate'
 import { CATEGORIES, getCategoryStyle } from '../../utils/categoryStyle'
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP']
@@ -37,7 +38,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
     const [previewSplits, setPreviewSplits] = useState([])
     const fetchedRef = useRef(false)
 
-    const { register, handleSubmit, watch, formState: { errors }, reset } = useForm()
+    const { register, handleSubmit, watch, formState: { errors, dirtyFields }, reset } = useForm()
     const amount = watch('amount')
 
     // Populate form with existing expense data
@@ -50,7 +51,9 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
             amount: expense.amount?.toString() || '',
             currency: expense.currency || 'INR',
             category: expense.category || 'Other',
-            date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : '',
+            // Shown in local time. Older day-only expenses get the time they
+            // were added when known, otherwise 00:00.
+            date: getExpenseDateTime(expense).date ? toDateTimeLocalValue(getExpenseDateTime(expense).date) : '',
             notes: expense.notes || '',
             paidBy: expense.paidBy?._id || expense.paidBy || user._id,
         })
@@ -161,7 +164,12 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
             formData.append('category', data.category)
             formData.append('paidBy', data.paidBy || user._id)
             formData.append('splitType', splitType)
-            formData.append('date', data.date)
+            // Only send the date when the user actually changed it, so editing
+            // e.g. the description never rewrites an older day-only date.
+            if (dirtyFields.date) {
+                const dateIso = dateTimeLocalToIso(data.date)
+                if (dateIso) formData.append('date', dateIso)
+            }
             if (data.notes) formData.append('notes', data.notes)
             if (receiptFile) formData.append('receipt', receiptFile)
             formData.append('splits', JSON.stringify(splitData.map(s => ({
@@ -231,7 +239,7 @@ const EditExpenseModal = ({ isOpen, onClose, expense, onSuccess }) => {
                             {CATEGORIES.map((c) => <option key={c} value={c}>{getCategoryStyle(c).emoji} {c}</option>)}
                         </select>
                     </div>
-                    <Input label="Date" type="date" {...register('date')} />
+                    <Input label="Date & time" type="datetime-local" {...register('date')} />
                 </div>
 
                 {/* Participants */}

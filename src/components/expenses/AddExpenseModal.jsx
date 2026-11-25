@@ -13,6 +13,7 @@ import { friendService } from '../../services/friendService'
 import { useAuth } from '../../context/AuthContext'
 import { calculateSplits, validateSplits, parseShares } from '../../utils/calculateSplits'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { toDateTimeLocalValue, dateTimeLocalToIso } from '../../utils/formatDate'
 import { CATEGORIES, getCategoryStyle } from '../../utils/categoryStyle'
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP']
@@ -37,10 +38,19 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
     const [previewSplits, setPreviewSplits] = useState([])
     const fetchedRef = useRef(false)
 
-    const { register, handleSubmit, watch, formState: { errors }, reset } = useForm({
-        defaultValues: { currency: 'INR', category: 'Other', date: new Date().toISOString().split('T')[0], paidBy: user._id },
+    const { register, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm({
+        // Local date + time. (This used to be `toISOString().split('T')[0]`,
+        // a UTC date — between midnight and 5:30 AM in India it defaulted to
+        // yesterday.)
+        defaultValues: { currency: 'INR', category: 'Other', date: toDateTimeLocalValue(), paidBy: user._id },
     })
     const amount = watch('amount')
+
+    // The modal stays mounted between uses, so refresh "now" on every open
+    // rather than keeping whatever time the page was first loaded.
+    useEffect(() => {
+        if (isOpen) setValue('date', toDateTimeLocalValue())
+    }, [isOpen, setValue])
 
     // Fetch groups and friends only once per open session
     useEffect(() => {
@@ -149,7 +159,10 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
             formData.append('category', data.category)
             formData.append('paidBy', data.paidBy || user._id)
             formData.append('splitType', splitType)
-            formData.append('date', data.date)
+            // Send an absolute timestamp so the server stores the real moment.
+            // If the field was cleared, omit it and the server uses "now".
+            const dateIso = dateTimeLocalToIso(data.date)
+            if (dateIso) formData.append('date', dateIso)
             if (data.notes) formData.append('notes', data.notes)
             if (receiptFile) formData.append('receipt', receiptFile)
 
@@ -227,7 +240,7 @@ const AddExpenseModal = ({ isOpen, onClose, defaultGroupId, onSuccess }) => {
                             {CATEGORIES.map((c) => <option key={c} value={c}>{getCategoryStyle(c).emoji} {c}</option>)}
                         </select>
                     </div>
-                    <Input label="Date" type="date" {...register('date')} />
+                    <Input label="Date & time" type="datetime-local" {...register('date')} />
                 </div>
 
                 {/* ─── Participant Selector ─── */}

@@ -8,7 +8,7 @@ import { expenseService } from '../services/expenseService'
 import { analyticsService } from '../services/analyticsService'
 import { friendService } from '../services/friendService'
 import { formatCurrency } from '../utils/formatCurrency'
-import { formatDate } from '../utils/formatDate'
+import { formatExpenseDateTime } from '../utils/formatDate'
 import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
 import Avatar from '../components/common/Avatar'
@@ -385,7 +385,7 @@ const GroupDetailPage = () => {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-default truncate">{exp.description}</p>
                                                 <p className="text-xs text-muted">
-                                                    {isPayer ? 'You paid' : `${exp.paidBy?.name} paid`} · {formatDate(exp.date)}
+                                                    {isPayer ? 'You paid' : `${exp.paidBy?.name} paid`} · {formatExpenseDateTime(exp)}
                                                 </p>
                                             </div>
                                             <div className="text-right flex-shrink-0">
