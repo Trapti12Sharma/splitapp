@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Crown, Receipt, Users, Edit2, Trash2, UserPlus, X, Search } from 'lucide-react'
+import { ArrowLeft, Plus, Crown, Receipt, Users, Edit2, Trash2, UserPlus, X, Search, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import toast from 'react-hot-toast'
 import { groupService } from '../services/groupService'
@@ -23,6 +23,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import EmptyState from '../components/common/EmptyState'
 import CurrencyDisplay from '../components/common/CurrencyDisplay'
 import { getCategoryStyle } from '../utils/categoryStyle'
+import { filenameFromDisposition, saveBlob, blobErrorMessage } from '../utils/downloadFile'
 
 const TABS = ['expenses', 'balances', 'stats', 'members']
 
@@ -54,6 +55,9 @@ const GroupDetailPage = () => {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleting, setDeleting] = useState(false)
+
+    // Spreadsheet export
+    const [exporting, setExporting] = useState(false)
 
     // Add member — quick-add panel shown in the header card
     const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -193,6 +197,23 @@ const GroupDetailPage = () => {
         }
     }
 
+    const handleExport = async () => {
+        if (exporting) return
+        setExporting(true)
+        const toastId = toast.loading('Preparing spreadsheet…')
+        try {
+            const res = await groupService.exportGroupSpreadsheet(id)
+            const filename = filenameFromDisposition(res.headers?.['content-disposition'])
+                || `${group?.name?.trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-') || 'group'}-expenses.xlsx`
+            saveBlob(res.data, filename)
+            toast.success('Spreadsheet downloaded', { id: toastId })
+        } catch (err) {
+            toast.error(await blobErrorMessage(err, 'Failed to download spreadsheet'), { id: toastId })
+        } finally {
+            setExporting(false)
+        }
+    }
+
     const handleDeleteGroup = async () => {
         setDeleting(true)
         try {
@@ -255,6 +276,17 @@ const GroupDetailPage = () => {
                         className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${showQuickAdd ? 'gradient-primary' : 'hover-surface'}`}
                         style={showQuickAdd ? undefined : { background: 'var(--surface-2)' }}>
                         <UserPlus className={`w-4 h-4 ${showQuickAdd ? 'text-white' : 'text-muted'}`} />
+                    </button>
+                    {/* Download spreadsheet — any member. Full report: expenses,
+                        per-person splits, balances, categories, settle-ups. */}
+                    <button onClick={handleExport} disabled={exporting}
+                        aria-label="Download group spreadsheet" title="Download spreadsheet (.xlsx)"
+                        aria-busy={exporting}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover-surface flex-shrink-0 disabled:opacity-60 disabled:cursor-wait"
+                        style={{ background: 'var(--positive-soft)' }}>
+                        {exporting
+                            ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--positive)' }} />
+                            : <FileSpreadsheet className="w-4 h-4" style={{ color: 'var(--positive)' }} />}
                     </button>
                     {/* Delete — admin only */}
                     {isAdmin && (
